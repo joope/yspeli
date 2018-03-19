@@ -21,7 +21,7 @@
   </body>
   <script>
     var socket = io();
-    var v_direction = [0,0];
+    
     var touchArea = document.getElementById("touchArea");
     var ctx = touchArea.getContext("2d");
 
@@ -31,19 +31,21 @@
     var w_center = width / 2;
     var y_center = height / 2;
 
+    var velocity = 0;
+    var direction = 0;
+
     var controlInterval;
 
     console.log(width, height);
 
     function sendControl() {
-      socket.emit('control', v_direction);
+      socket.emit('control', {v: velocity, d: direction});
     }
 
     function handlePosition(event) {
       event.preventDefault();
-      v_direction[0] = event.touches[0].pageX / w_center - 1;
-      v_direction[1] = event.touches[0].pageY / y_center - 1;
-      //sendControl();
+      direction = event.touches[0].pageX / w_center - 1;
+      velocity = -1 * (event.touches[0].pageY / y_center - 1);
     }
 
     touchArea.addEventListener("touchstart", function(event){
@@ -53,10 +55,10 @@
     touchArea.addEventListener("touchmove", handlePosition, false);
 
     touchArea.addEventListener("touchend", function(){
-      v_direction = [0,0];
+      velocity = 0;
     }, false);
 
-    setInterval(sendControl, 100);
-    // Host code
+    setInterval(sendControl, 10);
+
   </script>
 </html>

@@ -30,13 +30,15 @@
     var player = {
       x: 100.0,
       y: 100.0,
+      v: 0,
       vx: 0.0,
       vy: 0.0,
       dir: 90
     }
 
-    var friction = 0.95;
-    var maxV = 5;
+    var friction = 0.98;
+    var turnRate = 0.4;
+    var maxV = 10;
 
     drawPlayer();
 
@@ -45,23 +47,16 @@
       drawPlayer();
     }
 
-    function updatePlayer(control=[0,0]) {
-      // player.dir = updateDir(player.dir, control)
+    function updatePlayer(control={v:0, d:0}) {
+      player.v = (player.v + control.v) * 0.6;
+      player.dir = (player.dir - control.d * Math.abs(control.v) * turnRate);
 
-      player.vx = updateVelocity(player.vx, control[0]);
-      player.vy = updateVelocity(player.vy, control[1]);
+      player.vx = (Math.sin(player.dir) + player.vx) * 2 * player.v * friction;
+      player.vy = (Math.cos(player.dir) + player.vy) * 2 * player.v * friction;
       
       player.x = updateX(player.x, player.vx);
       player.y = updateY(player.y, player.vy);
-      // console.log(player)
-    }
-
-    function updateVelocity(old_v, new_v) {
-      if (new_v < 0) {
-        return Math.max(old_v + (2 * new_v), -maxV) * friction;
-      } else {
-        return Math.min(old_v + (2 * new_v), maxV) * friction;
-      }
+      //console.log(player)
     }
 
     function updateX(pos, vel) {
@@ -77,8 +72,8 @@
     }
 
     function drawPlayer(playerId) {
-      ctx.clearRect(0,0,canvas.width, canvas.height);
       ctx.beginPath();
+      ctx.clearRect(0,0,canvas.width, canvas.height);
       ctx.arc(player.x, player.y, 20, 0, 2 * Math.PI);
       ctx.stroke();
       ctx.moveTo(player.x, player.y);
