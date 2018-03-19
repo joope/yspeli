@@ -1,0 +1,94 @@
+<html>
+  <head>
+    <title>A Multiplayer Game</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      canvas {
+        box-sizing: border-box;
+        width: 100%;
+        height: 100vh;
+        border: 5px solid black;
+      }
+    </style>
+    <script src="/socket.io/socket.io.js"></script>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+  </body>
+  <script>
+    var socket = io();
+
+    var canvas = document.getElementById("canvas");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    var ctx=canvas.getContext("2d");
+
+    var player = {
+      x: 100.0,
+      y: 100.0,
+      vx: 0.0,
+      vy: 0.0,
+      dir: 90
+    }
+
+    var friction = 0.95;
+    var maxV = 5;
+
+    drawPlayer();
+
+    function handleUpdate(control) {
+      updatePlayer(control);
+      drawPlayer();
+    }
+
+    function updatePlayer(control=[0,0]) {
+      // player.dir = updateDir(player.dir, control)
+
+      player.vx = updateVelocity(player.vx, control[0]);
+      player.vy = updateVelocity(player.vy, control[1]);
+      
+      player.x = updateX(player.x, player.vx);
+      player.y = updateY(player.y, player.vy);
+      // console.log(player)
+    }
+
+    function updateVelocity(old_v, new_v) {
+      if (new_v < 0) {
+        return Math.max(old_v + (2 * new_v), -maxV) * friction;
+      } else {
+        return Math.min(old_v + (2 * new_v), maxV) * friction;
+      }
+    }
+
+    function updateX(pos, vel) {
+      if (pos + vel < 0) return 0;
+      if (pos + vel + 20 > canvas.width) return canvas.width - 20;
+      return pos + vel;
+    }
+
+    function updateY(pos, vel) {
+      if (pos + vel < 0) return 0;
+      if (pos + vel + 20 > canvas.height) return canvas.height - 20;
+      return pos + vel;
+    }
+
+    function drawPlayer(playerId) {
+      ctx.clearRect(0,0,canvas.width, canvas.height);
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, 20, 0, 2 * Math.PI);
+      ctx.stroke();
+      ctx.moveTo(player.x, player.y);
+      ctx.lineTo(player.x + Math.sin(player.dir) * 20, player.y + Math.cos(player.dir) * 20);
+      ctx.stroke();
+      ctx.closePath();
+    }
+
+    socket.on('control_event', updatePlayer);
+
+    setInterval(handleUpdate, 16);
+  </script>
+</html>

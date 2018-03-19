@@ -1,0 +1,62 @@
+<html>
+  <head>
+    <title>A Multiplayer Game</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      canvas {
+        box-sizing: border-box;
+        width: 100%;
+        height: 100vh;
+        border: 5px solid black;
+      }
+    </style>
+    <script src="/socket.io/socket.io.js"></script>
+  </head>
+  <body>
+    <canvas id="touchArea"></canvas>
+  </body>
+  <script>
+    var socket = io();
+    var v_direction = [0,0];
+    var touchArea = document.getElementById("touchArea");
+    var ctx = touchArea.getContext("2d");
+
+    var width = touchArea.offsetWidth;
+    var height = touchArea.offsetHeight;
+
+    var w_center = width / 2;
+    var y_center = height / 2;
+
+    var controlInterval;
+
+    console.log(width, height);
+
+    function sendControl() {
+      socket.emit('control', v_direction);
+    }
+
+    function handlePosition(event) {
+      event.preventDefault();
+      v_direction[0] = event.touches[0].pageX / w_center - 1;
+      v_direction[1] = event.touches[0].pageY / y_center - 1;
+      //sendControl();
+    }
+
+    touchArea.addEventListener("touchstart", function(event){
+      handlePosition(event);
+    }, false);
+
+    touchArea.addEventListener("touchmove", handlePosition, false);
+
+    touchArea.addEventListener("touchend", function(){
+      v_direction = [0,0];
+    }, false);
+
+    setInterval(sendControl, 100);
+    // Host code
+  </script>
+</html>
