@@ -33,53 +33,95 @@
       v: 0,
       vx: 0.0,
       vy: 0.0,
-      dir: 90
+      dir: 1
+    }
+
+    var ball = {
+      x: 300,
+      y: 300,
+      vx: 0.0,
+      vy: 0.0
     }
 
     var friction = 0.98;
-    var turnRate = 0.4;
-    var maxV = 10;
+    var turnRate = 0.2;
+    var maxV = 0.6;
+    
+    var playerSize = 20;
+    var ballSize = 30;
+    var borderPadding = 20;
 
     drawPlayer();
 
     function handleUpdate(control) {
       updatePlayer(control);
+      updateBall();
+      ctx.clearRect(0,0,canvas.width, canvas.height);
       drawPlayer();
+      drawBall();
     }
 
     function updatePlayer(control={v:0, d:0}) {
-      player.v = (player.v + control.v) * 0.6;
-      player.dir = (player.dir - control.d * Math.abs(control.v) * turnRate);
+      player.v = updateV(player.v, control.v * 0.1);
+      player.dir = (player.dir - control.d * Math.abs(player.v) * turnRate);
 
-      player.vx = (Math.sin(player.dir) + player.vx) * 2 * player.v * friction;
-      player.vy = (Math.cos(player.dir) + player.vy) * 2 * player.v * friction;
+      player.vx = (Math.sin(player.dir) + player.vx) * player.v;
+      player.vy = (Math.cos(player.dir) + player.vy) * player.v;
       
       player.x = updateX(player.x, player.vx);
       player.y = updateY(player.y, player.vy);
-      //console.log(player)
+      // console.log(player.v, player.dir)
+    }
+
+    function updateV(v, control_v) {
+      var new_v = (v + control_v) * 0.99;
+
+      if (new_v < -maxV) return -maxV;
+      if (new_v > maxV) return maxV;
+
+      return new_v;
     }
 
     function updateX(pos, vel) {
-      if (pos + vel < 0) return 0;
-      if (pos + vel + 20 > canvas.width) return canvas.width - 20;
+      if (pos + vel < borderPadding) return borderPadding;
+      if (pos + vel + borderPadding > canvas.width) return canvas.width - borderPadding;
       return pos + vel;
     }
 
     function updateY(pos, vel) {
-      if (pos + vel < 0) return 0;
-      if (pos + vel + 20 > canvas.height) return canvas.height - 20;
+      if (pos + vel < borderPadding) return borderPadding;
+      if (pos + vel + borderPadding > canvas.height) return canvas.height - borderPadding;
       return pos + vel;
     }
 
     function drawPlayer(playerId) {
       ctx.beginPath();
-      ctx.clearRect(0,0,canvas.width, canvas.height);
-      ctx.arc(player.x, player.y, 20, 0, 2 * Math.PI);
+      ctx.arc(player.x, player.y, playerSize, 0, 2 * Math.PI);
       ctx.stroke();
       ctx.moveTo(player.x, player.y);
-      ctx.lineTo(player.x + Math.sin(player.dir) * 20, player.y + Math.cos(player.dir) * 20);
+      ctx.lineTo(player.x + Math.sin(player.dir) * playerSize, player.y + Math.cos(player.dir) * playerSize);
       ctx.stroke();
       ctx.closePath();
+    }
+
+    function updateBall() {
+      var distance = Math.sqrt(Math.pow(player.x - ball.x, 2) + Math.pow(player.y - ball.y, 2));
+      console.log(distance);
+      if (distance < 50) {
+        ball.vx = player.vx * 2 * friction;
+        ball.vy = player.vy * 2 * friction;
+        player.v = player.v * 0.1;
+      }
+      ball.x = updateX(ball.x, ball.vx)
+      ball.y = updateY(ball.y, ball.vy)
+      if (ball.x === canvas.width - borderPadding || ball.x === borderPadding) ball.vx = -ball.vx;
+      if (ball.y === canvas.height - borderPadding || ball.y === borderPadding) ball.vy = -ball.vy;
+    }
+
+    function drawBall() {
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, ballSize, 0, 2 * Math.PI);
+      ctx.stroke();
     }
 
     socket.on('control_event', updatePlayer);
