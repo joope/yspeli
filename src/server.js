@@ -13,8 +13,11 @@ app.get('/host', function(req, res){
 io.on('connection', function(socket){
   console.log('a user connected');
   socket.on('control', function(control){
-    console.log(control)
-    io.emit('control_event', control)
+    io.emit('control_event', {
+      id : socket.id,
+      v : control.v,
+      d: control.d
+    })
   })
 });
 

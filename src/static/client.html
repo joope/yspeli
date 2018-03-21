@@ -58,6 +58,24 @@
       velocity = 0;
     }, false);
 
+    document.addEventListener('keydown', function(event){
+      switch (event.key)
+      {
+        case "ArrowUp":
+          velocity = 1;
+          break;
+        case "ArrowDown":
+          velocity = -1;
+          break;
+        case "ArrowLeft":
+          direction = direction - 0.5;
+          break;
+        case "ArrowRight":
+          direction = direction + 0.5;
+          break;
+      }
+    });
+	
     setInterval(sendControl, 10);
 
   </script>
