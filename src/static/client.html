@@ -44,8 +44,18 @@
 
     function handlePosition(event) {
       event.preventDefault();
-      direction = event.touches[0].pageX / w_center - 1;
-      velocity = -1 * (event.touches[0].pageY / y_center - 1);
+
+      const surfaceSize = w_center - 32;
+
+      // Both coordinates are divided by the same length to keep the aspect ratio
+      // of the control surface square.
+      const x = (event.touches[0].pageX - w_center) / surfaceSize;
+      const y = (event.touches[0].pageY - y_center) / surfaceSize;
+
+      direction = Math.atan2(y, x);     // angle between screen center and touch position
+      velocity = Math.sqrt(x*x + y*y);  // distance from center, needs to be clamped on the server
+
+      //console.log("x", x, "y", y, "dir", direction, "angles", direction * 180 / Math.PI, "vel", velocity);
     }
 
     touchArea.addEventListener("touchstart", function(event){

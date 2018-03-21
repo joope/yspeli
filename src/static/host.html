@@ -66,8 +66,8 @@
 
     function updatePlayerPositions() {
       forEachPlayer(function(player){
-        player.vx = (Math.sin(player.dir) + player.vx) * player.v;
-        player.vy = (Math.cos(player.dir) + player.vy) * player.v;
+        player.vx = (Math.cos(player.dir) + player.vx) * player.v;
+        player.vy = (Math.sin(player.dir) + player.vy) * player.v;
         player.x = updateX(player.x, player.vx);
         player.y = updateY(player.y, player.vy);
       });;
@@ -86,8 +86,10 @@
         }
       }
       var player = players[control_event.id];
-      player.v = updateV(player.v, control_event.v * 0.1);
-      player.dir = (player.dir - control_event.d * Math.abs(player.v) * turnRate);
+      player.v = updateV(player.v, Math.max(0.0, Math.min(1.0, control_event.v)));
+
+      // TODO store target dir but update the smoothed direction later
+      player.dir = control_event.d;
     }
 
     function updateV(v, control_v) {
@@ -117,7 +119,7 @@
 	      ctx.arc(player.x, player.y, playerSize, 0, 2 * Math.PI);
 	      ctx.stroke();
 	      ctx.moveTo(player.x, player.y);
-	      ctx.lineTo(player.x + Math.sin(player.dir) * playerSize, player.y + Math.cos(player.dir) * playerSize);
+	      ctx.lineTo(player.x + Math.cos(player.dir) * playerSize, player.y + Math.sin(player.dir) * playerSize);
 	      ctx.stroke();
 	      ctx.closePath();
       });
@@ -154,6 +156,7 @@
 
     socket.on('control_event', updatePlayerData);
 
+    // TODO Maybe requestAnimationFrame here?
     setInterval(handleUpdate, 16);
   </script>
 </html>
