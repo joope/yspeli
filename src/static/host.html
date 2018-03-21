@@ -37,18 +37,24 @@
       vy: 0.0
     }
 
-    var friction = 0.98;
-    var turnRate = 0.2;
-    var maxV = 0.8;
-    
-    var playerSize = 20;
-    var ballSize = 30;
-    var borderPadding = 20;
+    const friction = 0.98;
+    const turnRate = 0.2;
+    const maxV = 0.8;
+    const physicsTicksPerFrame = 4;
+    const simulationSpeed = 1.0;
+
+    const playerSize = 20;
+    const ballSize = 30;
+    const borderPadding = 20;
 
     function handleUpdate() {
       t = performance.now();
-      updatePlayerPositions();
-      updateBallPosition();
+
+      for (let i=0;i<physicsTicksPerFrame;i++) {
+          dt = simulationSpeed / physicsTicksPerFrame;
+          updatePlayerPositions(dt);
+          updateBallPosition(dt);
+      }
 
       ctx.clearRect(0,0,canvas.width, canvas.height);
 
@@ -64,12 +70,12 @@
       }
     }
 
-    function updatePlayerPositions() {
+    function updatePlayerPositions(dt) {
       forEachPlayer(function(player){
         player.vx = (Math.cos(player.dir) + player.vx) * player.v;
         player.vy = (Math.sin(player.dir) + player.vy) * player.v;
-        player.x = updateX(player.x, player.vx);
-        player.y = updateY(player.y, player.vy);
+        player.x = updateX(player.x, dt * player.vx);
+        player.y = updateY(player.y, dt * player.vy);
       });;
     }
 
@@ -125,7 +131,7 @@
       });
     }
 
-    function updateBallPosition() {
+    function updateBallPosition(dt) {
       forEachPlayer(function(player){
         var dx = ball.x - player.x;
         var dy = ball.y - player.y;
@@ -136,8 +142,8 @@
           player.v = player.v * 0.1;
         }
       })
-      ball.x = updateX(ball.x, ball.vx)
-      ball.y = updateY(ball.y, ball.vy)
+      ball.x = updateX(ball.x, dt * ball.vx)
+      ball.y = updateY(ball.y, dt * ball.vy)
       if (ball.x === canvas.width - borderPadding || ball.x === borderPadding) ball.vx = -ball.vx;
       if (ball.y === canvas.height - borderPadding || ball.y === borderPadding) ball.vy = -ball.vy;
     }
