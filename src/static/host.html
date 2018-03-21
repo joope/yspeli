@@ -27,56 +27,67 @@
 
     var ctx=canvas.getContext("2d");
 
-    var players = {
-    }
+    var players = {}
 
     var ball = {
       x: 300,
       y: 300,
+      z: 0.0,
       vx: 0.0,
       vy: 0.0
     }
 
     var friction = 0.98;
     var turnRate = 0.2;
-    var maxV = 0.6;
+    var maxV = 0.8;
     
     var playerSize = 20;
     var ballSize = 30;
     var borderPadding = 20;
 
     function handleUpdate() {
-      //updatePlayer();
-      updateBall();
+      t = performance.now();
+      updatePlayerPositions();
+      updateBallPosition();
+
       ctx.clearRect(0,0,canvas.width, canvas.height);
+
       drawPlayers();
       drawBall();
+      drawPerf(performance.now() - t)
     }
 
-    function updatePlayer(control_event) {
-	console.log(control_event);
+    function forEachPlayer(callBack) {
+      var keys = Object.keys(players);
+      for (i = 0; i < keys.length; i++) {
+        callBack(players[keys[i]]);
+      }
+    }
+
+    function updatePlayerPositions() {
+      forEachPlayer(function(player){
+        player.vx = (Math.sin(player.dir) + player.vx) * player.v;
+        player.vy = (Math.cos(player.dir) + player.vy) * player.v;
+        player.x = updateX(player.x, player.vx);
+        player.y = updateY(player.y, player.vy);
+      });;
+    }
+
+    function updatePlayerData(control_event) {
       if (!players[control_event.id]) {
-      console.log("Create new");
-      players[control_event.id] = {
+        console.log("Player " + control_event.id + " joined.");
+        players[control_event.id] = {
           x: 100.0,
           y: 100.0,
           v: 0,
           vx: 0.0,
           vy: 0.0,
           dir: 1
-          }
+        }
       }
-      player = players[control_event.id] 
-      control = control_event.control
-      player.v = updateV(player.v, control.v * 0.1);
-      player.dir = (player.dir - control.d * Math.abs(player.v) * turnRate);
-
-      player.vx = (Math.sin(player.dir) + player.vx) * player.v;
-      player.vy = (Math.cos(player.dir) + player.vy) * player.v;
-      
-      player.x = updateX(player.x, player.vx);
-      player.y = updateY(player.y, player.vy);
-      // console.log(player.v, player.dir)
+      var player = players[control_event.id];
+      player.v = updateV(player.v, control_event.v * 0.1);
+      player.dir = (player.dir - control_event.d * Math.abs(player.v) * turnRate);
     }
 
     function updateV(v, control_v) {
@@ -101,9 +112,7 @@
     }
 
     function drawPlayers() {
-      var keys = Object.keys(players);
-      for (i = 0; i < keys.length; i++) {
-          var player = players[keys[i]]
+      forEachPlayer(function(player){
 	      ctx.beginPath();
 	      ctx.arc(player.x, player.y, playerSize, 0, 2 * Math.PI);
 	      ctx.stroke();
@@ -111,19 +120,20 @@
 	      ctx.lineTo(player.x + Math.sin(player.dir) * playerSize, player.y + Math.cos(player.dir) * playerSize);
 	      ctx.stroke();
 	      ctx.closePath();
-      }
+      });
     }
 
-    function updateBall() {
-/*
-      var distance = Math.sqrt(Math.pow(player.x - ball.x, 2) + Math.pow(player.y - ball.y, 2));
-      console.log(distance);
-      if (distance < 50) {
-        ball.vx = player.vx * 2 * friction;
-        ball.vy = player.vy * 2 * friction;
-        player.v = player.v * 0.1;
-      }
-*/
+    function updateBallPosition() {
+      forEachPlayer(function(player){
+        var dx = ball.x - player.x;
+        var dy = ball.y - player.y;
+        var distance = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));
+        if (distance < 50) {
+          ball.vx = player.vx * 2;
+          ball.vy = player.vy * 2;
+          player.v = player.v * 0.1;
+        }
+      })
       ball.x = updateX(ball.x, ball.vx)
       ball.y = updateY(ball.y, ball.vy)
       if (ball.x === canvas.width - borderPadding || ball.x === borderPadding) ball.vx = -ball.vx;
@@ -134,9 +144,15 @@
       ctx.beginPath();
       ctx.arc(ball.x, ball.y, ballSize, 0, 2 * Math.PI);
       ctx.stroke();
+      ctx.closePath();
     }
 
-    socket.on('control_event', updatePlayer);
+    function drawPerf(time) {
+      ctx.font = "12px";
+      ctx.fillText(time.toFixed(2) + 'ms', 2, 10);
+    }
+
+    socket.on('control_event', updatePlayerData);
 
     setInterval(handleUpdate, 16);
   </script>
