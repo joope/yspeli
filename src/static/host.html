@@ -39,7 +39,7 @@
 
     const friction = 0.98;
     const turnRate = 0.2;
-    const maxV = 0.8;
+    const maxV = 0.9;
     const physicsTicksPerFrame = 4;
     const simulationSpeed = 1.0;
 
@@ -61,6 +61,7 @@
       drawPlayers();
       drawBall();
       drawPerf(performance.now() - t)
+      window.requestAnimationFrame(handleUpdate)
     }
 
     function forEachPlayer(callBack) {
@@ -99,7 +100,8 @@
     }
 
     function updateV(v, control_v) {
-      var new_v = (v + control_v) * 0.99;
+      if (control_v === 0) return v * 0.99;
+      var new_v = control_v;
 
       if (new_v < -maxV) return -maxV;
       if (new_v > maxV) return maxV;
@@ -135,7 +137,7 @@
       forEachPlayer(function(player){
         var dx = ball.x - player.x;
         var dy = ball.y - player.y;
-        var distance = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));
+        var distance = Math.sqrt(dx*dx + dy*dy);
         if (distance < 50) {
           ball.vx = player.vx * 2;
           ball.vy = player.vy * 2;
@@ -162,7 +164,6 @@
 
     socket.on('control_event', updatePlayerData);
 
-    // TODO Maybe requestAnimationFrame here?
-    setInterval(handleUpdate, 16);
+    window.requestAnimationFrame(handleUpdate);
   </script>
 </html>

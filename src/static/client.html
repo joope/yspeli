@@ -58,10 +58,7 @@
       //console.log("x", x, "y", y, "dir", direction, "angles", direction * 180 / Math.PI, "vel", velocity);
     }
 
-    touchArea.addEventListener("touchstart", function(event){
-      handlePosition(event);
-    }, false);
-
+    touchArea.addEventListener("touchstart", handlePosition, false);
     touchArea.addEventListener("touchmove", handlePosition, false);
 
     touchArea.addEventListener("touchend", function(){
