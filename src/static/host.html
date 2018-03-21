@@ -27,13 +27,7 @@
 
     var ctx=canvas.getContext("2d");
 
-    var player = {
-      x: 100.0,
-      y: 100.0,
-      v: 0,
-      vx: 0.0,
-      vy: 0.0,
-      dir: 1
+    var players = {
     }
 
     var ball = {
@@ -51,17 +45,29 @@
     var ballSize = 30;
     var borderPadding = 20;
 
-    drawPlayer();
-
-    function handleUpdate(control) {
-      updatePlayer(control);
+    function handleUpdate() {
+      //updatePlayer();
       updateBall();
       ctx.clearRect(0,0,canvas.width, canvas.height);
-      drawPlayer();
+      drawPlayers();
       drawBall();
     }
 
-    function updatePlayer(control={v:0, d:0}) {
+    function updatePlayer(control_event) {
+	console.log(control_event);
+      if (!players[control_event.id]) {
+      console.log("Create new");
+      players[control_event.id] = {
+          x: 100.0,
+          y: 100.0,
+          v: 0,
+          vx: 0.0,
+          vy: 0.0,
+          dir: 1
+          }
+      }
+      player = players[control_event.id] 
+      control = control_event.control
       player.v = updateV(player.v, control.v * 0.1);
       player.dir = (player.dir - control.d * Math.abs(player.v) * turnRate);
 
@@ -94,17 +100,22 @@
       return pos + vel;
     }
 
-    function drawPlayer(playerId) {
-      ctx.beginPath();
-      ctx.arc(player.x, player.y, playerSize, 0, 2 * Math.PI);
-      ctx.stroke();
-      ctx.moveTo(player.x, player.y);
-      ctx.lineTo(player.x + Math.sin(player.dir) * playerSize, player.y + Math.cos(player.dir) * playerSize);
-      ctx.stroke();
-      ctx.closePath();
+    function drawPlayers() {
+      var keys = Object.keys(players);
+      for (i = 0; i < keys.length; i++) {
+          var player = players[keys[i]]
+	      ctx.beginPath();
+	      ctx.arc(player.x, player.y, playerSize, 0, 2 * Math.PI);
+	      ctx.stroke();
+	      ctx.moveTo(player.x, player.y);
+	      ctx.lineTo(player.x + Math.sin(player.dir) * playerSize, player.y + Math.cos(player.dir) * playerSize);
+	      ctx.stroke();
+	      ctx.closePath();
+      }
     }
 
     function updateBall() {
+/*
       var distance = Math.sqrt(Math.pow(player.x - ball.x, 2) + Math.pow(player.y - ball.y, 2));
       console.log(distance);
       if (distance < 50) {
@@ -112,6 +123,7 @@
         ball.vy = player.vy * 2 * friction;
         player.v = player.v * 0.1;
       }
+*/
       ball.x = updateX(ball.x, ball.vx)
       ball.y = updateY(ball.y, ball.vy)
       if (ball.x === canvas.width - borderPadding || ball.x === borderPadding) ball.vx = -ball.vx;
