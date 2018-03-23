@@ -16,12 +16,12 @@
     <script src="/socket.io/socket.io.js"></script>
   </head>
   <body>
-    <canvas id="canvas"></canvas>
+    <canvas id="game"></canvas>
   </body>
   <script>
     var socket = io();
 
-    var canvas = document.getElementById("canvas");
+    var canvas = document.getElementById("game");
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
@@ -37,24 +37,31 @@
       vy: 0.0
     }
 
-    var friction = 0.98;
-    var turnRate = 0.2;
-    var maxV = 0.8;
-    
-    var playerSize = 20;
-    var ballSize = 30;
-    var borderPadding = 20;
+    const friction = 0.98;
+    const turnRate = 0.2;
+    const maxV = 0.9;
+    const physicsTicksPerFrame = 2;
+    const simulationSpeed = 1.0;
+
+    const playerSize = 20;
+    const ballSize = 30;
+    const borderPadding = 20;
 
     function handleUpdate() {
       t = performance.now();
-      updatePlayerPositions();
-      updateBallPosition();
+
+      for (let i=0;i<physicsTicksPerFrame;i++) {
+          dt = simulationSpeed / physicsTicksPerFrame;
+          updatePlayerPositions(dt);
+          updateBallPosition(dt);
+      }
 
       ctx.clearRect(0,0,canvas.width, canvas.height);
 
       drawPlayers();
       drawBall();
       drawPerf(performance.now() - t)
+      window.requestAnimationFrame(handleUpdate)
     }
 
     function forEachPlayer(callBack) {
@@ -64,12 +71,12 @@
       }
     }
 
-    function updatePlayerPositions() {
+    function updatePlayerPositions(dt) {
       forEachPlayer(function(player){
-        player.vx = (Math.sin(player.dir) + player.vx) * player.v;
-        player.vy = (Math.cos(player.dir) + player.vy) * player.v;
-        player.x = updateX(player.x, player.vx);
-        player.y = updateY(player.y, player.vy);
+        player.vx = (Math.cos(player.dir) + player.vx) * player.v;
+        player.vy = (Math.sin(player.dir) + player.vy) * player.v;
+        player.x = updateX(player.x, dt * player.vx);
+        player.y = updateY(player.y, dt * player.vy);
       });;
     }
 
@@ -82,16 +89,19 @@
           v: 0,
           vx: 0.0,
           vy: 0.0,
-          dir: 1
+          dir: 0
         }
       }
       var player = players[control_event.id];
-      player.v = updateV(player.v, control_event.v * 0.1);
-      player.dir = (player.dir - control_event.d * Math.abs(player.v) * turnRate);
+      player.v = updateV(player.v, Math.max(0.0, Math.min(1.0, control_event.v)));
+
+      // TODO store target dir but update the smoothed direction later
+      player.dir = control_event.d;
     }
 
     function updateV(v, control_v) {
-      var new_v = (v + control_v) * 0.99;
+      if (control_v === 0) return v * 0.99;
+      var new_v = v + control_v * 0.1;
 
       if (new_v < -maxV) return -maxV;
       if (new_v > maxV) return maxV;
@@ -117,25 +127,31 @@
 	      ctx.arc(player.x, player.y, playerSize, 0, 2 * Math.PI);
 	      ctx.stroke();
 	      ctx.moveTo(player.x, player.y);
-	      ctx.lineTo(player.x + Math.sin(player.dir) * playerSize, player.y + Math.cos(player.dir) * playerSize);
+	      ctx.lineTo(player.x + Math.cos(player.dir) * playerSize, player.y + Math.sin(player.dir) * playerSize);
 	      ctx.stroke();
 	      ctx.closePath();
       });
     }
 
-    function updateBallPosition() {
+    function updateBallPosition(dt) {
       forEachPlayer(function(player){
         var dx = ball.x - player.x;
         var dy = ball.y - player.y;
-        var distance = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));
-        if (distance < 50) {
-          ball.vx = player.vx * 2;
-          ball.vy = player.vy * 2;
+        var distance = Math.sqrt(dx*dx + dy*dy);
+        //console.log(direction);
+        if (distance <= 50) {
+          var direction = Math.atan2(dx, dy);
+          ball.vx = (Math.sin(direction) + 0.5*player.vx) * player.v * 4;
+          ball.vy = (Math.cos(direction) + 0.5*player.vy) * player.v * 4;
+          player.x = player.x - dx*0.1;
+          player.y = player.y - dy*0.1;
           player.v = player.v * 0.1;
         }
       })
-      ball.x = updateX(ball.x, ball.vx)
-      ball.y = updateY(ball.y, ball.vy)
+      ball.vx = ball.vx * friction;
+      ball.vy = ball.vy * friction;
+      ball.x = updateX(ball.x, dt * ball.vx);
+      ball.y = updateY(ball.y, dt * ball.vy);
       if (ball.x === canvas.width - borderPadding || ball.x === borderPadding) ball.vx = -ball.vx;
       if (ball.y === canvas.height - borderPadding || ball.y === borderPadding) ball.vy = -ball.vy;
     }
@@ -154,6 +170,6 @@
 
     socket.on('control_event', updatePlayerData);
 
-    setInterval(handleUpdate, 16);
+    window.requestAnimationFrame(handleUpdate);
   </script>
 </html>
