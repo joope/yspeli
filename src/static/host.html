@@ -16,12 +16,12 @@
     <script src="/socket.io/socket.io.js"></script>
   </head>
   <body>
-    <canvas id="canvas"></canvas>
+    <canvas id="game"></canvas>
   </body>
   <script>
     var socket = io();
 
-    var canvas = document.getElementById("canvas");
+    var canvas = document.getElementById("game");
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
@@ -40,7 +40,7 @@
     const friction = 0.98;
     const turnRate = 0.2;
     const maxV = 0.9;
-    const physicsTicksPerFrame = 4;
+    const physicsTicksPerFrame = 2;
     const simulationSpeed = 1.0;
 
     const playerSize = 20;
@@ -89,7 +89,7 @@
           v: 0,
           vx: 0.0,
           vy: 0.0,
-          dir: 1
+          dir: 0
         }
       }
       var player = players[control_event.id];
@@ -101,7 +101,7 @@
 
     function updateV(v, control_v) {
       if (control_v === 0) return v * 0.99;
-      var new_v = control_v;
+      var new_v = v + control_v * 0.1;
 
       if (new_v < -maxV) return -maxV;
       if (new_v > maxV) return maxV;
@@ -138,14 +138,20 @@
         var dx = ball.x - player.x;
         var dy = ball.y - player.y;
         var distance = Math.sqrt(dx*dx + dy*dy);
-        if (distance < 50) {
-          ball.vx = player.vx * 2;
-          ball.vy = player.vy * 2;
+        //console.log(direction);
+        if (distance <= 50) {
+          var direction = Math.atan2(dx, dy);
+          ball.vx = (Math.sin(direction) + 0.5*player.vx) * player.v * 4;
+          ball.vy = (Math.cos(direction) + 0.5*player.vy) * player.v * 4;
+          player.x = player.x - dx*0.1;
+          player.y = player.y - dy*0.1;
           player.v = player.v * 0.1;
         }
       })
-      ball.x = updateX(ball.x, dt * ball.vx)
-      ball.y = updateY(ball.y, dt * ball.vy)
+      ball.vx = ball.vx * friction;
+      ball.vy = ball.vy * friction;
+      ball.x = updateX(ball.x, dt * ball.vx);
+      ball.y = updateY(ball.y, dt * ball.vy);
       if (ball.x === canvas.width - borderPadding || ball.x === borderPadding) ball.vx = -ball.vx;
       if (ball.y === canvas.height - borderPadding || ball.y === borderPadding) ball.vy = -ball.vy;
     }

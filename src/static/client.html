@@ -9,8 +9,6 @@
       }
       canvas {
         box-sizing: border-box;
-        width: 100%;
-        height: 100vh;
         border: 5px solid black;
       }
     </style>
@@ -25,18 +23,18 @@
     var touchArea = document.getElementById("touchArea");
     var ctx = touchArea.getContext("2d");
 
-    var width = touchArea.offsetWidth;
-    var height = touchArea.offsetHeight;
+    touchArea.width = window.innerWidth;
+    touchArea.height = window.innerWidth;
 
-    var w_center = width / 2;
-    var y_center = height / 2;
+    var w_center = touchArea.width / 2;
+    var y_center = touchArea.height / 2;
 
     var velocity = 0;
     var direction = 0;
 
     var controlInterval;
 
-    console.log(width, height);
+    console.log(touchArea.width, touchArea.height);
 
     function sendControl() {
       socket.emit('control', {v: velocity, d: direction});
