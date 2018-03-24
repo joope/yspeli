@@ -34,7 +34,9 @@
       y: 300,
       z: 0.0,
       vx: 0.0,
-      vy: 0.0
+      vy: 0.0,
+      vz: 0.0,
+      az: 0.0
     }
 
     const friction = 0.98;
@@ -101,7 +103,7 @@
 
     function updateV(v, control_v) {
       if (control_v === 0) return v * 0.99;
-      var new_v = v + control_v * 0.1;
+      var new_v = control_v;
 
       if (new_v < -maxV) return -maxV;
       if (new_v > maxV) return maxV;
@@ -139,26 +141,33 @@
         var dy = ball.y - player.y;
         var distance = Math.sqrt(dx*dx + dy*dy);
         //console.log(direction);
-        if (distance <= 50) {
+        if (distance <= 50 && ball.z < 2) {
           var direction = Math.atan2(dx, dy);
           ball.vx = (Math.sin(direction) + 0.5*player.vx) * player.v * 4;
           ball.vy = (Math.cos(direction) + 0.5*player.vy) * player.v * 4;
+          ball.vz = 5 * player.v + 2;
           player.x = player.x - dx*0.1;
           player.y = player.y - dy*0.1;
-          player.v = player.v * 0.1;
+          player.v = player.v * 0.2;
+          console.log(ball);
         }
       })
-      ball.vx = ball.vx * friction;
-      ball.vy = ball.vy * friction;
+      ball.vx = ball.vx * 0.99;
+      ball.vy = ball.vy * 0.99;
+      ball.vz = Math.max(ball.vz - 0.1, -5);
       ball.x = updateX(ball.x, dt * ball.vx);
       ball.y = updateY(ball.y, dt * ball.vy);
+      ball.z = Math.max(ball.z + dt * ball.vz, 0);
       if (ball.x === canvas.width - borderPadding || ball.x === borderPadding) ball.vx = -ball.vx;
       if (ball.y === canvas.height - borderPadding || ball.y === borderPadding) ball.vy = -ball.vy;
+      if (ball.z <= 0) ball.vz = -ball.vz * 0.6;
     }
 
     function drawBall() {
       ctx.beginPath();
-      ctx.arc(ball.x, ball.y, ballSize, 0, 2 * Math.PI);
+      ctx.arc(ball.x, ball.y, ballSize + ball.z, 0, 2 * Math.PI);
+      ctx.fillStyle = "#c2c2c2";
+      ctx.fill();
       ctx.stroke();
       ctx.closePath();
     }
