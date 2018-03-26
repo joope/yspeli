@@ -14,6 +14,7 @@
       }
     </style>
     <script src="/socket.io/socket.io.js"></script>
+    <script src="/static/vector2d.js"></script>
   </head>
   <body>
     <canvas id="game"></canvas>
@@ -30,11 +31,9 @@
     var players = {}
 
     var ball = {
-      x: 300,
-      y: 300,
+      pos: new Vec2(300, 300),
       z: 0.0,
-      vx: 0.0,
-      vy: 0.0,
+      vel: new Vec2(0, 0),
       vz: 0.0,
       az: 0.0
     }
@@ -75,22 +74,19 @@
 
     function updatePlayerPositions(dt) {
       forEachPlayer(function(player){
-        player.vx = (Math.cos(player.dir) + player.vx) * player.v;
-        player.vy = (Math.sin(player.dir) + player.vy) * player.v;
-        player.x = updateX(player.x, dt * player.vx);
-        player.y = updateY(player.y, dt * player.vy);
-      });;
+        player.vel.x = (Math.cos(player.dir) + player.vel.x) * player.v;
+        player.vel.y = (Math.sin(player.dir) + player.vel.y) * player.v;
+        player.pos = updatePos(player.pos, Vec2.multiply(player.vel, dt));
+      });
     }
 
     function updatePlayerData(control_event) {
       if (!players[control_event.id]) {
         console.log("Player " + control_event.id + " joined.");
         players[control_event.id] = {
-          x: 100.0,
-          y: 100.0,
+          pos: new Vec2(100, 100),
           v: 0,
-          vx: 0.0,
-          vy: 0.0,
+          vel: new Vec2(0, 0), 
           dir: 0
         }
       }
@@ -111,25 +107,22 @@
       return new_v;
     }
 
-    function updateX(pos, vel) {
-      if (pos + vel < borderPadding) return borderPadding;
-      if (pos + vel + borderPadding > canvas.width) return canvas.width - borderPadding;
-      return pos + vel;
-    }
-
-    function updateY(pos, vel) {
-      if (pos + vel < borderPadding) return borderPadding;
-      if (pos + vel + borderPadding > canvas.height) return canvas.height - borderPadding;
-      return pos + vel;
+    function updatePos(pos, vel) {
+      newpos = Vec2.add(pos, vel);
+      newpos.x = Math.max(borderPadding, newpos.x);
+      newpos.y = Math.max(borderPadding, newpos.y);
+      newpos.x = Math.min(canvas.width - borderPadding, newpos.x);
+      newpos.y = Math.min(canvas.height - borderPadding, newpos.y);
+      return newpos;
     }
 
     function drawPlayers() {
       forEachPlayer(function(player){
 	      ctx.beginPath();
-	      ctx.arc(player.x, player.y, playerSize, 0, 2 * Math.PI);
+	      ctx.arc(player.pos.x, player.pos.y, playerSize, 0, 2 * Math.PI);
 	      ctx.stroke();
-	      ctx.moveTo(player.x, player.y);
-	      ctx.lineTo(player.x + Math.cos(player.dir) * playerSize, player.y + Math.sin(player.dir) * playerSize);
+	      ctx.moveTo(player.pos.x, player.pos.y);
+	      ctx.lineTo(player.pos.x + Math.cos(player.dir) * playerSize, player.pos.y + Math.sin(player.dir) * playerSize);
 	      ctx.stroke();
 	      ctx.closePath();
       });
@@ -137,35 +130,30 @@
 
     function updateBallPosition(dt) {
       forEachPlayer(function(player){
-        var dx = ball.x - player.x;
-        var dy = ball.y - player.y;
-        var distance = Math.sqrt(dx*dx + dy*dy);
-        //console.log(direction);
+        var delta = Vec2.subtract(ball.pos, player.pos);
+
+        var distance = delta.magnitude();
         if (distance <= 50 && ball.z < 2) {
-          var direction = Math.atan2(dx, dy);
-          ball.vx = (Math.sin(direction) + 0.5*player.vx) * player.v * 4;
-          ball.vy = (Math.cos(direction) + 0.5*player.vy) * player.v * 4;
+          var direction = Math.atan2(delta.x, delta.y);
+          ball.vel.x = (Math.sin(direction) + 0.5*player.vel.x) * player.v * 4;
+          ball.vel.y = (Math.cos(direction) + 0.5*player.vel.x) * player.v * 4;
           ball.vz = 5 * player.v + 2;
-          player.x = player.x - dx*0.1;
-          player.y = player.y - dy*0.1;
+          player.pos = Vec2.subtract(player.pos, Vec2.multiply(delta, 0.1));
           player.v = player.v * 0.2;
-          console.log(ball);
         }
       })
-      ball.vx = ball.vx * 0.99;
-      ball.vy = ball.vy * 0.99;
+      ball.vel = Vec2.multiply(ball.vel, 0.99);
       ball.vz = Math.max(ball.vz - 0.1, -5);
-      ball.x = updateX(ball.x, dt * ball.vx);
-      ball.y = updateY(ball.y, dt * ball.vy);
+      ball.pos = updatePos(ball.pos, ball.vel);
       ball.z = Math.max(ball.z + dt * ball.vz, 0);
-      if (ball.x === canvas.width - borderPadding || ball.x === borderPadding) ball.vx = -ball.vx;
-      if (ball.y === canvas.height - borderPadding || ball.y === borderPadding) ball.vy = -ball.vy;
+      if (ball.pos.x === canvas.width - borderPadding || ball.pos.x === borderPadding) ball.vel.x = -ball.vel.x;
+      if (ball.pos.y === canvas.height - borderPadding || ball.pos.y === borderPadding) ball.vel.y = -ball.vel.y;
       if (ball.z <= 0) ball.vz = -ball.vz * 0.6;
     }
 
     function drawBall() {
       ctx.beginPath();
-      ctx.arc(ball.x, ball.y, ballSize + ball.z, 0, 2 * Math.PI);
+      ctx.arc(ball.pos.x, ball.pos.y, ballSize + ball.z, 0, 2 * Math.PI);
       ctx.fillStyle = "#c2c2c2";
       ctx.fill();
       ctx.stroke();
