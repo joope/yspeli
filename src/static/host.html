@@ -43,6 +43,9 @@
       blue: 0
     }
 
+    // We need this flag to tell the gameLogic state machine to enter STATE_GOAL
+    let scoredAGoalLastFrame = false; // TODO maybe have some event list instead?
+
     function getTime() {
       return performance.now();
     }
@@ -52,6 +55,8 @@
     const STATE_WARMUP = "warmup";
     const STATE_GAME = "game";
     const STATE_GOAL = "goal";
+    const STATE_GOAL_CONTINUE = "goal_continue";
+    const STATE_FACE_OFF = "face_off";
     const STATE_PARTY = "party";
 
     let stateLogic = function*() {
@@ -66,6 +71,19 @@
 
         while (score.red < 3 && score.blue < 3) {
           yield STATE_GAME;
+
+          if (scoredAGoalLastFrame) {
+            console.log("Goal!");
+            goalTime = getTime();
+            while (getTime() - goalTime < 3000) {
+              yield STATE_GOAL;
+            }
+            yield STATE_GOAL_CONTINUE; // one frame for player position setup etc.
+            console.log("Face off");
+            while (getTime() - goalTime < 1000) {
+              yield STATE_FACE_OFF;
+            }
+          }
         }
 
         console.log("Game ended", score);
@@ -153,17 +171,33 @@
       t = performance.now();
 
       gameState = stateMachine.next().value;
+      scoredAGoalLastFrame = false;
 
       if (gameState == STATE_INIT) {
         console.log("Initializing game");
         score.red = 0;
         score.blue = 0;
+      } else if (gameState == STATE_GOAL_CONTINUE) {
+        ball.pos = arena.center.clone();
+        ball.vel = new Vec2(0,0);
+        ball.z = 2.0;
+        ball.az = 0.0;
+        ball.vz = 0.0;
+        // TODO reposition players here too and reset their velocities
       }
 
       for (let i=0;i<physicsTicksPerFrame;i++) {
           dt = simulationSpeed / physicsTicksPerFrame;
-          updatePlayerPositions(dt);
-          updateBallPosition(dt);
+
+          // Player's can't move during the face off
+          if (gameState != STATE_FACE_OFF) {
+            updatePlayerPositions(dt);
+          }
+
+          // Ball stays still after a goal (maybe not a good idea?)
+          if (gameState != STATE_GOAL) {
+            updateBallPosition(dt);
+          }
       }
 
       drawArena();
@@ -283,7 +317,9 @@
 
       if (ball.z <= 0) ball.vz = -ball.vz * 0.6;
 
-      if (ball.pos.y >= goals[0].pos.y && ball.pos.y <= goals[0].pos.y + goals[0].height) {
+      // We allow goals only during STATE_GAME
+      if (ball.pos.y >= goals[0].pos.y && ball.pos.y <= goals[0].pos.y + goals[0].height
+          && gameState == STATE_GAME) {
           let scored = false;
 
           if (ball.pos.x < left_pad) {
@@ -295,11 +331,7 @@
           }
 
           if (scored) {
-            ball.pos = arena.center.clone();
-            ball.vel = new Vec2(0,0);
-            ball.z = 2.0;
-            ball.az = 0.0;
-            ball.vz = 0.0;
+            scoredAGoalLastFrame = true;
             return;
           }
 
