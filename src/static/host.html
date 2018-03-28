@@ -68,7 +68,7 @@
       ctx.fillRect(pos.x, pos.y, this.width, this.height);
     }
 
-    let goalHeight = arena.height * 0.25;
+    let goalHeight = arena.height * 0.4;
     const goalWidth = 16;
 
     var goals = [
@@ -231,15 +231,35 @@
       let top_pad = arena.top + ballSize;
       let bottom_pad = arena.bottom - ballSize;
 
-      if (ball.pos.x < left_pad   || ball.pos.x > right_pad)  ball.vel.x = -ball.vel.x;
-      if (ball.pos.y < top_pad    || ball.pos.y > bottom_pad) ball.vel.y = -ball.vel.y;
-
-      ball.pos.x = Math.max(left_pad, newpos.x);
-      ball.pos.y = Math.max(top_pad, newpos.y);
-      ball.pos.x = Math.min(right_pad, newpos.x);
-      ball.pos.y = Math.min(bottom_pad, newpos.y);
-
       if (ball.z <= 0) ball.vz = -ball.vz * 0.6;
+
+      if (ball.pos.y >= goals[0].pos.y && ball.pos.y <= goals[0].pos.y + goals[0].height) {
+          let scored = false;
+
+          if (ball.pos.x < left_pad) {
+            console.log("BLUE SCORES");
+            scored = true;
+          } else if (ball.pos.x > right_pad) {
+            console.log("RED SCORES");
+            scored = true;
+          }
+
+          if (scored) {
+            ball.pos = new Vec2(100, 100);
+            ball.vel = new Vec2(0,0);
+            return;
+          }
+
+      } else {
+        if (ball.pos.x < left_pad   || ball.pos.x > right_pad)  ball.vel.x = -ball.vel.x;
+
+        ball.pos.x = Math.max(left_pad, newpos.x);
+        ball.pos.x = Math.min(right_pad, newpos.x);
+      }
+
+      if (ball.pos.y < top_pad    || ball.pos.y > bottom_pad) ball.vel.y = -ball.vel.y;
+      ball.pos.y = Math.max(top_pad, newpos.y);
+      ball.pos.y = Math.min(bottom_pad, newpos.y);
     }
 
     function drawBall() {
