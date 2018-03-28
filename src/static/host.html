@@ -14,7 +14,8 @@
       }
     </style>
     <script src="/socket.io/socket.io.js"></script>
-    <script src="/static/vector2d.js"></script>
+    <script src="/vector2d.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.0.9/howler.core.min.js"></script>
   </head>
   <body>
     <canvas id="game"></canvas>
@@ -28,8 +29,12 @@
 
     var ctx=canvas.getContext("2d");
 
-    var players = {}
+    var music = new Howl({
+      src: ['/motiv_music_1.wav'],
+      volume: 0.5,
+    });
 
+    var players = {}
     var ball = {
       pos: new Vec2(300, 300),
       z: 0.0,
@@ -37,7 +42,6 @@
       vz: 0.0,
       az: 0.0
     }
-
     var score = {
       red: 0,
       blue: 0
@@ -68,14 +72,15 @@
         while (getTime() - start < 2000) {
           yield STATE_WARMUP;
         }
-
+        initGamePositions();
         while (score.red < 3 && score.blue < 3) {
           yield STATE_GAME;
 
           if (scoredAGoalLastFrame) {
             console.log("Goal!");
             goalTime = getTime();
-            while (getTime() - goalTime < 3000) {
+            music.play();
+            while (getTime() - goalTime < 6000) {
               yield STATE_GOAL;
             }
             yield STATE_GOAL_CONTINUE; // one frame for player position setup etc.
@@ -83,6 +88,7 @@
             while (getTime() - goalTime < 1000) {
               yield STATE_FACE_OFF;
             }
+            music.stop();
           }
         }
 
@@ -99,6 +105,23 @@
     let stateMachine = stateLogic();
 
     let arenaGap = 100;
+
+    function initGamePositions(){
+      ball.pos = arena.center.clone();
+      ball.vel = new Vec2(0,0);
+      ball.z = 2.0;
+      ball.az = 0.0;
+      ball.vz = 0.0;
+
+      forEachPlayer(function(player, i){
+        var y = arena.center.y - 50*(i - player.team) + (Object.keys(players).length / 2) * 50 - 50;
+        player.pos = player.team === 0 
+          ? new Vec2(arena.center.x * 0.3, y)
+          : new Vec2(arena.center.x * 1.7, y)
+        player.v = 0;
+        player.dir = player.team === 0 ? 0 : Math.PI;
+      });
+    }
 
     var arena = {
       left: arenaGap,
@@ -175,15 +198,11 @@
 
       if (gameState == STATE_INIT) {
         console.log("Initializing game");
+        initGamePositions();
         score.red = 0;
         score.blue = 0;
       } else if (gameState == STATE_GOAL_CONTINUE) {
-        ball.pos = arena.center.clone();
-        ball.vel = new Vec2(0,0);
-        ball.z = 2.0;
-        ball.az = 0.0;
-        ball.vz = 0.0;
-        // TODO reposition players here too and reset their velocities
+        initGamePositions();
       }
 
       for (let i=0;i<physicsTicksPerFrame;i++) {
@@ -227,7 +246,7 @@
     function forEachPlayer(callBack) {
       var keys = Object.keys(players);
       for (i = 0; i < keys.length; i++) {
-        callBack(players[keys[i]]);
+        callBack(players[keys[i]], i);
       }
     }
 
@@ -242,7 +261,7 @@
     function updatePlayerData(control_event) {
       if (!players[control_event.id]) {
         players[control_event.id] = {
-          pos: new Vec2(100, 100),
+          pos: getRandomCoordinates(),
           v: 0,
           vel: new Vec2(0, 0),
           dir: 0,
@@ -300,7 +319,7 @@
           var direction = Math.atan2(delta.x, delta.y);
           ball.vel.x = (Math.sin(direction) + 0.5*player.vel.x) * player.v * 2;
           ball.vel.y = (Math.cos(direction) + 0.5*player.vel.y) * player.v * 2;
-          //ball.vz = 5 * player.v + 2;
+          ball.vz = ball.vz + player.v;
           player.pos = Vec2.subtract(player.pos, Vec2.multiply(delta, 0.1));
           player.v = player.v * 0.2;
         }
@@ -336,13 +355,13 @@
           }
 
       } else {
-        if (ball.pos.x < left_pad   || ball.pos.x > right_pad)  ball.vel.x = -ball.vel.x;
+        if (ball.pos.x < left_pad || ball.pos.x > right_pad)  ball.vel.x = -ball.vel.x;
 
         ball.pos.x = Math.max(left_pad, newpos.x);
         ball.pos.x = Math.min(right_pad, newpos.x);
       }
 
-      if (ball.pos.y < top_pad    || ball.pos.y > bottom_pad) ball.vel.y = -ball.vel.y;
+      if (ball.pos.y < top_pad || ball.pos.y > bottom_pad) ball.vel.y = -ball.vel.y;
       ball.pos.y = Math.max(top_pad, newpos.y);
       ball.pos.y = Math.min(bottom_pad, newpos.y);
     }
@@ -350,7 +369,8 @@
     function drawBall() {
       let pos = worldToScreen(ball.pos);
       ctx.beginPath();
-      ctx.arc(pos.x, pos.y, ballSize + ball.z, 0, 2 * Math.PI);
+      ctx.strokeStyle = 'black';
+      ctx.arc(pos.x, pos.y, ballSize + ball.z * 3, 0, 2 * Math.PI);
       ctx.fillStyle = "#c2c2c2";
       ctx.fill();
       ctx.stroke();
@@ -371,7 +391,19 @@
       ctx.fillText(score.red + " - " + score.blue, worldPos.x, worldPos.y);
     }
 
+    function getRandomCoordinates(){
+      return new Vec2(
+        Math.floor(Math.random() * Math.floor(arena.width)), 
+        Math.floor(Math.random() * Math.floor(arena.height))
+      );
+    };
+
     socket.on('control_event', updatePlayerData);
+    socket.on('player_disconnect', function(playerID){
+      console.log(playerID + ' quit the game')
+      // Remove comment to delete players:
+      // delete players[playerID];
+    })
 
     window.requestAnimationFrame(handleUpdate);
   </script>

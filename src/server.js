@@ -4,7 +4,7 @@ var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var path = require('path');
 
-app.use('/static', express.static(path.join(__dirname, 'static')))
+app.use('/', express.static(path.join(__dirname, 'static')))
 
 app.get('/', function(req, res){
   res.sendFile(__dirname + '/static/client.html');
@@ -15,14 +15,18 @@ app.get('/host', function(req, res){
 });
 
 io.on('connection', function(socket){
-  console.log('a user connected');
+  var playerID = socket.id;
+  console.log(playerID + ' connected');
   socket.on('control', function(control){
     io.emit('control_event', {
-      id : socket.id,
+      id : playerID,
       v : control.v,
       d: control.d
     })
   })
+  socket.on('disconnect', function(){
+    io.emit('player_disconnect', playerID);
+  });
 });
 
 http.listen(3000, function(){
