@@ -40,7 +40,7 @@
 
     var score = {
       red: 0,
-      blu: 0
+      blue: 0
     }
 
     let arenaGap = 100;
@@ -54,6 +54,7 @@
 
     arena["width"] = arena.right - arena.left;
     arena["height"] = arena.bottom - arena.top;
+    arena["center"] = new Vec2(arena.left + arena.width/2, arena.top + arena.height/2);
 
     function Goal(args) {
       this.pos = args.pos;
@@ -121,6 +122,7 @@
       }
 
       drawArena();
+      drawScoreboard();
       drawGoals();
       drawPlayers();
       drawBall();
@@ -163,8 +165,9 @@
         players[control_event.id] = {
           pos: new Vec2(100, 100),
           v: 0,
-          vel: new Vec2(0, 0), 
-          dir: 0
+          vel: new Vec2(0, 0),
+          dir: 0,
+          team: Object.keys(players).length % 2
         }
       }
       var player = players[control_event.id];
@@ -198,6 +201,8 @@
         let pos = worldToScreen(player.pos);
 
         ctx.beginPath();
+        ctx.strokeStyle = ['blue', 'red'][player.team];
+        ctx.fillStyle = ['blue', 'red'][player.team];
         ctx.arc(pos.x, pos.y, playerSize, 0, 2 * Math.PI);
         ctx.stroke();
         ctx.moveTo(pos.x, pos.y);
@@ -237,16 +242,19 @@
           let scored = false;
 
           if (ball.pos.x < left_pad) {
-            console.log("BLUE SCORES");
+            score.blue = score.blue + 1;
             scored = true;
           } else if (ball.pos.x > right_pad) {
-            console.log("RED SCORES");
+            score.red = score.red + 1;
             scored = true;
           }
 
           if (scored) {
-            ball.pos = new Vec2(100, 100);
+            ball.pos = arena.center.clone();
             ball.vel = new Vec2(0,0);
+            ball.z = 2.0;
+            ball.az = 0.0;
+            ball.vz = 0.0;
             return;
           }
 
@@ -273,8 +281,16 @@
     }
 
     function drawPerf(time) {
-      ctx.font = "12px";
+      ctx.font = "12px serif";
       ctx.fillText(time.toFixed(2) + 'ms', 2, 10);
+    }
+
+    function drawScoreboard() {
+      ctx.font = "96px sans-serif";
+      ctx.fillStyle = 'lightgrey';
+      let pos = new Vec2(arena.center.x - 100, arena.top + 100);
+      worldPos = worldToScreen(pos);
+      ctx.fillText(score.red + " - " + score.blue, worldPos.x, worldPos.y);
     }
 
     socket.on('control_event', updatePlayerData);
