@@ -43,9 +43,11 @@
       blu: 0
     }
 
+    let arenaGap = 100;
+
     var arena = {
-      left: 0,
-      right: canvas.width,
+      left: arenaGap,
+      right: canvas.width - arenaGap,
       top: 0,
       bottom: canvas.height
     }
@@ -67,7 +69,7 @@
     }
 
     let goalHeight = arena.height * 0.25;
-    let goalWidth = 16;
+    const goalWidth = 16;
 
     var goals = [
       /* Red Goal */
@@ -81,7 +83,7 @@
       }),
       /* Blue Goal */
       new Goal({
-        pos: new Vec2(0, arena.height * 0.5 - goalHeight/2),
+        pos: new Vec2(arena.left, arena.height * 0.5 - goalHeight/2),
         width: 16,
         height: goalHeight,
         fillStyle: "blue",
@@ -110,6 +112,8 @@
     function handleUpdate() {
       t = performance.now();
 
+      //cameraPos = Vec2.add(ball.pos, new Vec2(-canvas.width/2, -canvas.height/2));
+
       for (let i=0;i<physicsTicksPerFrame;i++) {
           dt = simulationSpeed / physicsTicksPerFrame;
           updatePlayerPositions(dt);
@@ -125,7 +129,7 @@
     }
 
     function drawArena() {
-      let pos = worldToScreen(new Vec2(arena.left, arena.top,));
+      let pos = worldToScreen(new Vec2(arena.left, arena.top));
       ctx.clearRect(0,0,canvas.width, canvas.height);
       ctx.strokeStyle = 'black';
       ctx.lineWidth = 5;
@@ -182,10 +186,10 @@
 
     function updatePos(pos, vel) {
       newpos = Vec2.add(pos, vel);
-      newpos.x = Math.max(borderPadding, newpos.x);
-      newpos.y = Math.max(borderPadding, newpos.y);
-      newpos.x = Math.min(arena.width - borderPadding, newpos.x);
-      newpos.y = Math.min(arena.height - borderPadding, newpos.y);
+      newpos.x = Math.max(arena.left, newpos.x);
+      newpos.y = Math.max(arena.top, newpos.y);
+      newpos.x = Math.min(arena.right, newpos.x);
+      newpos.y = Math.min(arena.bottom, newpos.y);
       return newpos;
     }
 
@@ -221,8 +225,20 @@
       ball.vz = Math.max(ball.vz - 0.1, -5);
       ball.pos = updatePos(ball.pos, ball.vel);
       ball.z = Math.max(ball.z + dt * ball.vz, 0);
-      if (ball.pos.x === arena.width - borderPadding || ball.pos.x === borderPadding) ball.vel.x = -ball.vel.x;
-      if (ball.pos.y === arena.height - borderPadding || ball.pos.y === borderPadding) ball.vel.y = -ball.vel.y;
+
+      let left_pad = arena.left + ballSize;
+      let right_pad = arena.right - ballSize;
+      let top_pad = arena.top + ballSize;
+      let bottom_pad = arena.bottom - ballSize;
+
+      if (ball.pos.x < left_pad   || ball.pos.x > right_pad)  ball.vel.x = -ball.vel.x;
+      if (ball.pos.y < top_pad    || ball.pos.y > bottom_pad) ball.vel.y = -ball.vel.y;
+
+      ball.pos.x = Math.max(left_pad, newpos.x);
+      ball.pos.y = Math.max(top_pad, newpos.y);
+      ball.pos.x = Math.min(right_pad, newpos.x);
+      ball.pos.y = Math.min(bottom_pad, newpos.y);
+
       if (ball.z <= 0) ball.vz = -ball.vz * 0.6;
     }
 
