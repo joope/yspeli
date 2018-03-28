@@ -69,7 +69,7 @@
       ctx.fillRect(pos.x, pos.y, this.width, this.height);
     }
 
-    let goalHeight = arena.height * 0.4;
+    let goalHeight = arena.height * 0.2;
     const goalWidth = 16;
 
     var goals = [
@@ -219,9 +219,9 @@
         var distance = delta.magnitude();
         if (distance <= 50 && ball.z < 2) {
           var direction = Math.atan2(delta.x, delta.y);
-          ball.vel.x = (Math.sin(direction) + 0.5*player.vel.x) * player.v * 4;
-          ball.vel.y = (Math.cos(direction) + 0.5*player.vel.y) * player.v * 4;
-          ball.vz = 5 * player.v + 2;
+          ball.vel.x = (Math.sin(direction) + 0.5*player.vel.x) * player.v * 2;
+          ball.vel.y = (Math.cos(direction) + 0.5*player.vel.y) * player.v * 2;
+          //ball.vz = 5 * player.v + 2;
           player.pos = Vec2.subtract(player.pos, Vec2.multiply(delta, 0.1));
           player.v = player.v * 0.2;
         }
