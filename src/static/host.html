@@ -43,6 +43,43 @@
       blue: 0
     }
 
+    function getTime() {
+      return performance.now();
+    }
+
+    const STATE_INVALID = "invalid";
+    const STATE_INIT = "init";
+    const STATE_WARMUP = "warmup";
+    const STATE_GAME = "game";
+    const STATE_GOAL = "goal";
+    const STATE_PARTY = "party";
+
+    let stateLogic = function*() {
+      while (true) {
+        console.log("Started a new game");
+        start = getTime();
+        yield STATE_INIT;
+
+        while (getTime() - start < 2000) {
+          yield STATE_WARMUP;
+        }
+
+        while (score.red < 3 && score.blue < 3) {
+          yield STATE_GAME;
+        }
+
+        console.log("Game ended", score);
+        end = getTime();
+
+        while (getTime() - end < 5000) {
+          yield STATE_PARTY;
+        }
+      }
+    }
+
+    // We need to instantiate our generator before we can use it.
+    let stateMachine = stateLogic();
+
     let arenaGap = 100;
 
     var arena = {
@@ -110,10 +147,18 @@
       return pScreen;
     }
 
+    let gameState = STATE_INVALID;
+
     function handleUpdate() {
       t = performance.now();
 
-      //cameraPos = Vec2.add(ball.pos, new Vec2(-canvas.width/2, -canvas.height/2));
+      gameState = stateMachine.next().value;
+
+      if (gameState == STATE_INIT) {
+        console.log("Initializing game");
+        score.red = 0;
+        score.blue = 0;
+      }
 
       for (let i=0;i<physicsTicksPerFrame;i++) {
           dt = simulationSpeed / physicsTicksPerFrame;
@@ -283,6 +328,7 @@
     function drawPerf(time) {
       ctx.font = "12px serif";
       ctx.fillText(time.toFixed(2) + 'ms', 2, 10);
+      ctx.fillText("State: " + gameState, 2, 30);
     }
 
     function drawScoreboard() {
