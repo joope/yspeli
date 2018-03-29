@@ -236,7 +236,7 @@
         }
       })
       ball.vel = Vec2.multiply(ball.vel, 0.99);
-      ball.vz = Math.max(ball.vz - 0.1, -5);
+      ball.vz = Math.max(ball.vz - 0.05, -5);
       ball.pos = Vec2.add(ball.pos, ball.vel);
       ball.z = Math.max(ball.z + dt * ball.vz, 0);
 
