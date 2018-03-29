@@ -89,7 +89,12 @@
     arena.center = new Vec2(arena.left + arena.width/2, arena.top + arena.height/2);
 
     const goalHeight = arena.height * 0.2;
-    const goalWidth = 16;
+    const goalWidth = 12;
+
+    let left_pad = arena.left + ballSize;
+    let right_pad = arena.right - ballSize;
+    let top_pad = arena.top + ballSize;
+    let bottom_pad = arena.bottom - ballSize;
 
     function Goal(args) {
       this.pos = args.pos;
@@ -106,14 +111,6 @@
 
     var goals = [
       /* Red Goal */
-      new Goal({
-        pos: new Vec2(arena.right - goalWidth, arena.height * 0.5 - goalHeight/2),
-        width: goalWidth,
-        height: goalHeight,
-        fillStyle: "red",
-        strokeStyle: "red",
-        lineWidth: "3"
-      }),
       /* Blue Goal */
       new Goal({
         pos: new Vec2(arena.left, arena.height * 0.5 - goalHeight/2),
@@ -121,6 +118,14 @@
         height: goalHeight,
         fillStyle: "blue",
         strokeStyle: "blue",
+        lineWidth: "3"
+      }),
+      new Goal({
+        pos: new Vec2(arena.right - goalWidth, arena.height * 0.5 - goalHeight/2),
+        width: goalWidth,
+        height: goalHeight,
+        fillStyle: "red",
+        strokeStyle: "red",
         lineWidth: "3"
       })
     ]
@@ -192,9 +197,7 @@
           }
 
           // Ball stays still after a goal (maybe not a good idea?)
-          if (gameState != STATE_GOAL) {
-            updateBallPosition(dt);
-          }
+          updateBallPosition(dt);
       }
 
       drawArena();
@@ -232,38 +235,33 @@
       })
       ball.vel = Vec2.multiply(ball.vel, 0.99);
       ball.vz = Math.max(ball.vz - 0.1, -5);
-      ball.pos = updatePos(ball.pos, ball.vel);
+      ball.pos = Vec2.add(ball.pos, ball.vel);
       ball.z = Math.max(ball.z + dt * ball.vz, 0);
-
-      let left_pad = arena.left + ballSize;
-      let right_pad = arena.right - ballSize;
-      let top_pad = arena.top + ballSize;
-      let bottom_pad = arena.bottom - ballSize;
 
       if (ball.z <= 0) ball.vz = -ball.vz * 0.6;
 
-      // We allow goals only during STATE_GAME
-      if (ball.pos.y >= goals[0].pos.y && ball.pos.y <= goals[0].pos.y + goals[0].height
-          && gameState == STATE_GAME && !isGoal) {
-
-          if (ball.pos.x < left_pad) {
-            score.blue = score.blue + 1;
-            isGoal = true;
-          } else if (ball.pos.x > right_pad) {
-            score.red = score.red + 1;
-            isGoal = true;
-          }
-
-      } else {
-        if (ball.pos.x < left_pad || ball.pos.x > right_pad)  ball.vel.x = -ball.vel.x;
-
-        ball.pos.x = Math.max(left_pad, newpos.x);
-        ball.pos.x = Math.min(right_pad, newpos.x);
+      // We allow goals only during STATE_GAME if no goals have been made
+      if (gameState == STATE_GAME && !isGoal) {
+        if (ballInBlueGoal()) {
+          score.red = score.red + 1;
+          isGoal = true;
+        }
+        if (ballInRedGoal()){
+          score.blue = score.blue + 1;
+          isGoal = true;
+        }
+      }
+      if (!ballInBlueGoal() && ball.pos.x < left_pad || !ballInRedGoal() && ball.pos.x > right_pad) {
+        ball.vel.x = -ball.vel.x;
+      }
+      if (!isGoal) {
+        ball.pos.x = Math.max(left_pad, ball.pos.x);
+        ball.pos.x = Math.min(right_pad, ball.pos.x);
       }
 
       if (ball.pos.y < top_pad || ball.pos.y > bottom_pad) ball.vel.y = -ball.vel.y;
-      ball.pos.y = Math.max(top_pad, newpos.y);
-      ball.pos.y = Math.min(bottom_pad, newpos.y);
+      ball.pos.y = Math.max(top_pad, ball.pos.y);
+      ball.pos.y = Math.min(bottom_pad, ball.pos.y);
     }
 
     // Object position calculations end
@@ -323,7 +321,7 @@
       ctx.fillStyle = 'lightgrey';
       let pos = new Vec2(arena.center.x - 100, arena.top + 100);
       worldPos = worldToScreen(pos);
-      ctx.fillText(score.red + " - " + score.blue, worldPos.x, worldPos.y);
+      ctx.fillText(score.blue + " - " + score.red, worldPos.x, worldPos.y);
     }
 
     // Helper functions -->
@@ -369,7 +367,7 @@
     }
 
     function updatePos(pos, vel) {
-      newpos = Vec2.add(pos, vel);
+      const newpos = Vec2.add(pos, vel);
       newpos.x = Math.max(arena.left, newpos.x);
       newpos.y = Math.max(arena.top, newpos.y);
       newpos.x = Math.min(arena.right, newpos.x);
@@ -382,7 +380,7 @@
       return pScreen;
     }
 
-        function initGamePositions(){
+    function initGamePositions(){
       ball.pos = arena.center.clone();
       ball.vel = new Vec2(0,0);
       ball.z = 10.0;
@@ -399,9 +397,16 @@
       });
     }
 
-
     function getTime() {
       return performance.now();
+    }
+
+    function ballInBlueGoal() {
+      return (isGoal && ball.pos.x <= left_pad) || ball.pos.y >= goals[0].pos.y && ball.pos.y <= goals[0].pos.y + goals[0].height && ball.pos.x <= left_pad;
+    }
+
+    function ballInRedGoal() {
+      return (isGoal && ball.pos.x >= right_pad) || ball.pos.y >= goals[1].pos.y && ball.pos.y <= goals[1].pos.y + goals[1].height && ball.pos.x >= right_pad
     }
 
     // Helper functions end
