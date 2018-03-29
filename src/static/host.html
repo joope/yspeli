@@ -58,7 +58,7 @@
     const STATE_FACE_OFF = "face_off";
     const STATE_PARTY = "party";
 
-    let arenaGap = 100;
+    let arenaGap = 75;
 
     let gameState = STATE_INVALID;
 
@@ -89,7 +89,7 @@
     arena.center = new Vec2(arena.left + arena.width/2, arena.top + arena.height/2);
 
     const goalHeight = arena.height * 0.2;
-    const goalWidth = 12;
+    const goalWidth = arenaGap;
 
     let left_pad = arena.left + ballSize;
     let right_pad = arena.right - ballSize;
@@ -106,25 +106,27 @@
     Goal.prototype.draw = function() {
       let pos = worldToScreen(this.pos);
       ctx.fillStyle = this.fillStyle;
+      ctx.strokeStyle = this.strokeStyle;
       ctx.fillRect(pos.x, pos.y, this.width, this.height);
+      ctx.stroke();
     }
 
     var goals = [
       /* Red Goal */
       /* Blue Goal */
       new Goal({
-        pos: new Vec2(arena.left, arena.height * 0.5 - goalHeight/2),
+        pos: new Vec2(arena.left - goalWidth, arena.height * 0.5 - goalHeight/2),
         width: goalWidth,
         height: goalHeight,
-        fillStyle: "blue",
+        fillStyle: "rgba(0, 30, 200, 0.8)",
         strokeStyle: "blue",
         lineWidth: "3"
       }),
       new Goal({
-        pos: new Vec2(arena.right - goalWidth, arena.height * 0.5 - goalHeight/2),
+        pos: new Vec2(arena.right, arena.height * 0.5 - goalHeight/2),
         width: goalWidth,
         height: goalHeight,
-        fillStyle: "red",
+        fillStyle: "rgba(200, 30, 0, 0.8)",
         strokeStyle: "red",
         lineWidth: "3"
       })
@@ -202,10 +204,10 @@
 
       drawArena();
       drawScoreboard();
-      drawGoals();
       drawPlayers();
       drawBall();
-      drawPerf(performance.now() - t)
+      drawGoals();
+      drawDebug(performance.now() - t)
       window.requestAnimationFrame(handleGameTick)
     }
 
@@ -251,6 +253,7 @@
           isGoal = true;
         }
       }
+      // TODO bounce ball inside the goal
       if (!ballInBlueGoal() && ball.pos.x < left_pad || !ballInRedGoal() && ball.pos.x > right_pad) {
         ball.vel.x = -ball.vel.x;
       }
@@ -258,7 +261,6 @@
         ball.pos.x = Math.max(left_pad, ball.pos.x);
         ball.pos.x = Math.min(right_pad, ball.pos.x);
       }
-
       if (ball.pos.y < top_pad || ball.pos.y > bottom_pad) ball.vel.y = -ball.vel.y;
       ball.pos.y = Math.max(top_pad, ball.pos.y);
       ball.pos.y = Math.min(bottom_pad, ball.pos.y);
@@ -270,10 +272,12 @@
 
     function drawArena() {
       let pos = worldToScreen(new Vec2(arena.left, arena.top));
-      ctx.clearRect(0,0,canvas.width, canvas.height);
+      ctx.fillStyle = 'rgb(70, 70, 70)'
+      ctx.fillRect(0,0,canvas.width, canvas.height);
       ctx.strokeStyle = 'black';
-      ctx.lineWidth = 5;
-      ctx.strokeRect(pos.x, pos.y, arena.width, arena.height);
+      ctx.lineWidth = 2;
+      ctx.fillStyle = 'rgb(255, 255, 255)'
+      ctx.fillRect(pos.x, pos.y, arena.width, arena.height);
       ctx.lineWidth = 1;
     }
 
@@ -310,8 +314,9 @@
       }
     }
 
-    function drawPerf(time) {
+    function drawDebug(time) {
       ctx.font = "12px serif";
+      ctx.fillStyle = 'rgb(255,255,255)';
       ctx.fillText(time.toFixed(2) + 'ms', 2, 10);
       ctx.fillText("State: " + gameState, 2, 30);
     }
@@ -368,9 +373,9 @@
 
     function updatePos(pos, vel) {
       const newpos = Vec2.add(pos, vel);
-      newpos.x = Math.max(arena.left, newpos.x);
+      newpos.x = Math.max(arena.left + playerSize, newpos.x);
       newpos.y = Math.max(arena.top, newpos.y);
-      newpos.x = Math.min(arena.right, newpos.x);
+      newpos.x = Math.min(arena.right - playerSize, newpos.x);
       newpos.y = Math.min(arena.bottom, newpos.y);
       return newpos;
     }
