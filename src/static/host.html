@@ -32,27 +32,22 @@
     var music = new Howl({
       src: ['/motiv_music_1.wav'],
       volume: 0.5,
-    });
+    });  
 
-    var players = {}
-    var ball = {
-      pos: new Vec2(300, 300),
-      z: 0.0,
-      vel: new Vec2(0, 0),
-      vz: 0.0,
-      az: 0.0
-    }
-    var score = {
-      red: 0,
-      blue: 0
-    }
+    // Game settings -->
+    let isGoal = false;
 
-    // We need this flag to tell the gameLogic state machine to enter STATE_GOAL
-    let scoredAGoalLastFrame = false; // TODO maybe have some event list instead?
+    const friction = 0.98;
+    const turnRate = 0.2;
+    const maxV = 0.9;
+    const physicsTicksPerFrame = 4;
+    const simulationSpeed = 1.0;
 
-    function getTime() {
-      return performance.now();
-    }
+    const playerSize = 20;
+    const ballSize = 30;
+    const borderPadding = 20;
+
+    let cameraPos = new Vec2(0, 0);
 
     const STATE_INVALID = "invalid";
     const STATE_INIT = "init";
@@ -62,6 +57,75 @@
     const STATE_GOAL_CONTINUE = "goal_continue";
     const STATE_FACE_OFF = "face_off";
     const STATE_PARTY = "party";
+
+    let arenaGap = 100;
+
+    let gameState = STATE_INVALID;
+
+    var score = {
+      red: 0,
+      blue: 0
+    }
+    // Settings end
+
+    // Game object initializations -->
+    var players = {}
+    var ball = {
+      pos: new Vec2(300, 300),
+      z: 0.0,
+      vel: new Vec2(0, 0),
+      vz: 0.0,
+      az: 0.0
+    }
+    var arena = {
+      left: arenaGap,
+      right: canvas.width - arenaGap,
+      top: 0,
+      bottom: canvas.height
+    }
+
+    arena.width = arena.right - arena.left;
+    arena.height = arena.bottom - arena.top;
+    arena.center = new Vec2(arena.left + arena.width/2, arena.top + arena.height/2);
+
+    const goalHeight = arena.height * 0.2;
+    const goalWidth = 16;
+
+    function Goal(args) {
+      this.pos = args.pos;
+      this.width = args.width;
+      this.height = args.height;
+      this.fillStyle = args.fillStyle;
+    }
+
+    Goal.prototype.draw = function() {
+      let pos = worldToScreen(this.pos);
+      ctx.fillStyle = this.fillStyle;
+      ctx.fillRect(pos.x, pos.y, this.width, this.height);
+    }
+
+    var goals = [
+      /* Red Goal */
+      new Goal({
+        pos: new Vec2(arena.right - goalWidth, arena.height * 0.5 - goalHeight/2),
+        width: goalWidth,
+        height: goalHeight,
+        fillStyle: "red",
+        strokeStyle: "red",
+        lineWidth: "3"
+      }),
+      /* Blue Goal */
+      new Goal({
+        pos: new Vec2(arena.left, arena.height * 0.5 - goalHeight/2),
+        width: goalWidth,
+        height: goalHeight,
+        fillStyle: "blue",
+        strokeStyle: "blue",
+        lineWidth: "3"
+      })
+    ]
+
+    // Game object initializations end
 
     let stateLogic = function*() {
       while (true) {
@@ -76,7 +140,7 @@
         while (score.red < 3 && score.blue < 3) {
           yield STATE_GAME;
 
-          if (scoredAGoalLastFrame) {
+          if (isGoal) {
             console.log("Goal!");
             goalTime = getTime();
             music.play();
@@ -104,97 +168,10 @@
     // We need to instantiate our generator before we can use it.
     let stateMachine = stateLogic();
 
-    let arenaGap = 100;
-
-    function initGamePositions(){
-      ball.pos = arena.center.clone();
-      ball.vel = new Vec2(0,0);
-      ball.z = 2.0;
-      ball.az = 0.0;
-      ball.vz = 0.0;
-
-      forEachPlayer(function(player, i){
-        var y = arena.center.y - 50*(i - player.team) + (Object.keys(players).length / 2) * 50 - 50;
-        player.pos = player.team === 0 
-          ? new Vec2(arena.center.x * 0.3, y)
-          : new Vec2(arena.center.x * 1.7, y)
-        player.v = 0;
-        player.dir = player.team === 0 ? 0 : Math.PI;
-      });
-    }
-
-    var arena = {
-      left: arenaGap,
-      right: canvas.width - arenaGap,
-      top: 0,
-      bottom: canvas.height
-    }
-
-    arena["width"] = arena.right - arena.left;
-    arena["height"] = arena.bottom - arena.top;
-    arena["center"] = new Vec2(arena.left + arena.width/2, arena.top + arena.height/2);
-
-    function Goal(args) {
-      this.pos = args.pos;
-      this.width = args.width;
-      this.height = args.height;
-      this.fillStyle = args.fillStyle;
-    }
-
-    Goal.prototype.draw = function() {
-      let pos = worldToScreen(this.pos);
-      ctx.fillStyle = this.fillStyle;
-      ctx.fillRect(pos.x, pos.y, this.width, this.height);
-    }
-
-    let goalHeight = arena.height * 0.2;
-    const goalWidth = 16;
-
-    var goals = [
-      /* Red Goal */
-      new Goal({
-        pos: new Vec2(arena.right - goalWidth, arena.height * 0.5 - goalHeight/2),
-        width: goalWidth,
-        height: goalHeight,
-        fillStyle: "red",
-        strokeStyle: "red",
-        lineWidth: "3"
-      }),
-      /* Blue Goal */
-      new Goal({
-        pos: new Vec2(arena.left, arena.height * 0.5 - goalHeight/2),
-        width: 16,
-        height: goalHeight,
-        fillStyle: "blue",
-        strokeStyle: "blue",
-        lineWidth: "3"
-      })
-    ]
-
-    const friction = 0.98;
-    const turnRate = 0.2;
-    const maxV = 0.9;
-    const physicsTicksPerFrame = 2;
-    const simulationSpeed = 1.0;
-
-    const playerSize = 20;
-    const ballSize = 30;
-    const borderPadding = 20;
-
-    let cameraPos = new Vec2(0, 0);
-
-    function worldToScreen(pWorld) {
-      let pScreen = Vec2.add(Vec2.multiply(cameraPos, -1), pWorld);
-      return pScreen;
-    }
-
-    let gameState = STATE_INVALID;
-
-    function handleUpdate() {
+    function handleGameTick() {
       t = performance.now();
 
       gameState = stateMachine.next().value;
-      scoredAGoalLastFrame = false;
 
       if (gameState == STATE_INIT) {
         console.log("Initializing game");
@@ -203,6 +180,7 @@
         score.blue = 0;
       } else if (gameState == STATE_GOAL_CONTINUE) {
         initGamePositions();
+        isGoal = false;
       }
 
       for (let i=0;i<physicsTicksPerFrame;i++) {
@@ -225,8 +203,72 @@
       drawPlayers();
       drawBall();
       drawPerf(performance.now() - t)
-      window.requestAnimationFrame(handleUpdate)
+      window.requestAnimationFrame(handleGameTick)
     }
+
+    // Object position calculations -->
+
+    function updatePlayerPositions(dt) {
+      forEachPlayer(function(player){
+        player.vel.x = (Math.cos(player.dir) + player.vel.x) * player.v;
+        player.vel.y = (Math.sin(player.dir) + player.vel.y) * player.v;
+        player.pos = updatePos(player.pos, Vec2.multiply(player.vel, dt));
+      });
+    }
+
+    function updateBallPosition(dt) {
+      forEachPlayer(function(player){
+        var delta = Vec2.subtract(ball.pos, player.pos);
+
+        var distance = delta.magnitude();
+        if (distance <= 50 && ball.z < 2) {
+          var direction = Math.atan2(delta.x, delta.y);
+          ball.vel.x = (Math.sin(direction) + 0.5*player.vel.x) * player.v * 2;
+          ball.vel.y = (Math.cos(direction) + 0.5*player.vel.y) * player.v * 2;
+          ball.vz = ball.vz + player.v;
+          player.pos = Vec2.subtract(player.pos, Vec2.multiply(delta, 0.1));
+          player.v = player.v * 0.2;
+        }
+      })
+      ball.vel = Vec2.multiply(ball.vel, 0.99);
+      ball.vz = Math.max(ball.vz - 0.1, -5);
+      ball.pos = updatePos(ball.pos, ball.vel);
+      ball.z = Math.max(ball.z + dt * ball.vz, 0);
+
+      let left_pad = arena.left + ballSize;
+      let right_pad = arena.right - ballSize;
+      let top_pad = arena.top + ballSize;
+      let bottom_pad = arena.bottom - ballSize;
+
+      if (ball.z <= 0) ball.vz = -ball.vz * 0.6;
+
+      // We allow goals only during STATE_GAME
+      if (ball.pos.y >= goals[0].pos.y && ball.pos.y <= goals[0].pos.y + goals[0].height
+          && gameState == STATE_GAME && !isGoal) {
+
+          if (ball.pos.x < left_pad) {
+            score.blue = score.blue + 1;
+            isGoal = true;
+          } else if (ball.pos.x > right_pad) {
+            score.red = score.red + 1;
+            isGoal = true;
+          }
+
+      } else {
+        if (ball.pos.x < left_pad || ball.pos.x > right_pad)  ball.vel.x = -ball.vel.x;
+
+        ball.pos.x = Math.max(left_pad, newpos.x);
+        ball.pos.x = Math.min(right_pad, newpos.x);
+      }
+
+      if (ball.pos.y < top_pad || ball.pos.y > bottom_pad) ball.vel.y = -ball.vel.y;
+      ball.pos.y = Math.max(top_pad, newpos.y);
+      ball.pos.y = Math.min(bottom_pad, newpos.y);
+    }
+
+    // Object position calculations end
+
+    // Draw functions start
 
     function drawArena() {
       let pos = worldToScreen(new Vec2(arena.left, arena.top));
@@ -237,25 +279,66 @@
       ctx.lineWidth = 1;
     }
 
+    function drawPlayers() {
+      forEachPlayer(function(player){
+        let pos = worldToScreen(player.pos);
+
+        ctx.beginPath();
+        ctx.strokeStyle = ['blue', 'red'][player.team];
+        ctx.fillStyle = ['blue', 'red'][player.team];
+        ctx.arc(pos.x, pos.y, playerSize, 0, 2 * Math.PI);
+        ctx.stroke();
+        ctx.moveTo(pos.x, pos.y);
+        ctx.lineTo(pos.x + Math.cos(player.dir) * playerSize, pos.y + Math.sin(player.dir) * playerSize);
+        ctx.stroke();
+        ctx.closePath();
+      });
+    }
+
+    function drawBall() {
+      let pos = worldToScreen(ball.pos);
+      ctx.beginPath();
+      ctx.strokeStyle = 'black';
+      ctx.arc(pos.x, pos.y, ballSize + ball.z * 3, 0, 2 * Math.PI);
+      ctx.fillStyle = "#c2c2c2";
+      ctx.fill();
+      ctx.stroke();
+      ctx.closePath();
+    }
+
     function drawGoals() {
       for (i = 0; i < goals.length; i++) {
         goals[i].draw();
       }
     }
 
+    function drawPerf(time) {
+      ctx.font = "12px serif";
+      ctx.fillText(time.toFixed(2) + 'ms', 2, 10);
+      ctx.fillText("State: " + gameState, 2, 30);
+    }
+
+    function drawScoreboard() {
+      ctx.font = "96px sans-serif";
+      ctx.fillStyle = 'lightgrey';
+      let pos = new Vec2(arena.center.x - 100, arena.top + 100);
+      worldPos = worldToScreen(pos);
+      ctx.fillText(score.red + " - " + score.blue, worldPos.x, worldPos.y);
+    }
+
+    // Helper functions -->
+    function getRandomCoordinates(){
+      return new Vec2(
+        Math.floor(Math.random() * Math.floor(arena.width)), 
+        Math.floor(Math.random() * Math.floor(arena.height))
+      );
+    };
+
     function forEachPlayer(callBack) {
       var keys = Object.keys(players);
       for (i = 0; i < keys.length; i++) {
         callBack(players[keys[i]], i);
       }
-    }
-
-    function updatePlayerPositions(dt) {
-      forEachPlayer(function(player){
-        player.vel.x = (Math.cos(player.dir) + player.vel.x) * player.v;
-        player.vel.y = (Math.sin(player.dir) + player.vel.y) * player.v;
-        player.pos = updatePos(player.pos, Vec2.multiply(player.vel, dt));
-      });
     }
 
     function updatePlayerData(control_event) {
@@ -294,109 +377,34 @@
       return newpos;
     }
 
-    function drawPlayers() {
-      forEachPlayer(function(player){
-        let pos = worldToScreen(player.pos);
+    function worldToScreen(pWorld) {
+      let pScreen = Vec2.add(Vec2.multiply(cameraPos, -1), pWorld);
+      return pScreen;
+    }
 
-        ctx.beginPath();
-        ctx.strokeStyle = ['blue', 'red'][player.team];
-        ctx.fillStyle = ['blue', 'red'][player.team];
-        ctx.arc(pos.x, pos.y, playerSize, 0, 2 * Math.PI);
-        ctx.stroke();
-        ctx.moveTo(pos.x, pos.y);
-        ctx.lineTo(pos.x + Math.cos(player.dir) * playerSize, pos.y + Math.sin(player.dir) * playerSize);
-        ctx.stroke();
-        ctx.closePath();
+        function initGamePositions(){
+      ball.pos = arena.center.clone();
+      ball.vel = new Vec2(0,0);
+      ball.z = 10.0;
+      ball.az = 0.0;
+      ball.vz = 0.0;
+
+      forEachPlayer(function(player, i){
+        var y = arena.center.y - 50*(i - player.team) + (Object.keys(players).length / 2) * 50 - 50;
+        player.pos = player.team === 0 
+          ? new Vec2(arena.center.x * 0.3, y)
+          : new Vec2(arena.center.x * 1.7, y)
+        player.v = 0;
+        player.dir = player.team === 0 ? 0 : Math.PI;
       });
     }
 
-    function updateBallPosition(dt) {
-      forEachPlayer(function(player){
-        var delta = Vec2.subtract(ball.pos, player.pos);
 
-        var distance = delta.magnitude();
-        if (distance <= 50 && ball.z < 2) {
-          var direction = Math.atan2(delta.x, delta.y);
-          ball.vel.x = (Math.sin(direction) + 0.5*player.vel.x) * player.v * 2;
-          ball.vel.y = (Math.cos(direction) + 0.5*player.vel.y) * player.v * 2;
-          ball.vz = ball.vz + player.v;
-          player.pos = Vec2.subtract(player.pos, Vec2.multiply(delta, 0.1));
-          player.v = player.v * 0.2;
-        }
-      })
-      ball.vel = Vec2.multiply(ball.vel, 0.99);
-      ball.vz = Math.max(ball.vz - 0.1, -5);
-      ball.pos = updatePos(ball.pos, ball.vel);
-      ball.z = Math.max(ball.z + dt * ball.vz, 0);
-
-      let left_pad = arena.left + ballSize;
-      let right_pad = arena.right - ballSize;
-      let top_pad = arena.top + ballSize;
-      let bottom_pad = arena.bottom - ballSize;
-
-      if (ball.z <= 0) ball.vz = -ball.vz * 0.6;
-
-      // We allow goals only during STATE_GAME
-      if (ball.pos.y >= goals[0].pos.y && ball.pos.y <= goals[0].pos.y + goals[0].height
-          && gameState == STATE_GAME) {
-          let scored = false;
-
-          if (ball.pos.x < left_pad) {
-            score.blue = score.blue + 1;
-            scored = true;
-          } else if (ball.pos.x > right_pad) {
-            score.red = score.red + 1;
-            scored = true;
-          }
-
-          if (scored) {
-            scoredAGoalLastFrame = true;
-            return;
-          }
-
-      } else {
-        if (ball.pos.x < left_pad || ball.pos.x > right_pad)  ball.vel.x = -ball.vel.x;
-
-        ball.pos.x = Math.max(left_pad, newpos.x);
-        ball.pos.x = Math.min(right_pad, newpos.x);
-      }
-
-      if (ball.pos.y < top_pad || ball.pos.y > bottom_pad) ball.vel.y = -ball.vel.y;
-      ball.pos.y = Math.max(top_pad, newpos.y);
-      ball.pos.y = Math.min(bottom_pad, newpos.y);
+    function getTime() {
+      return performance.now();
     }
 
-    function drawBall() {
-      let pos = worldToScreen(ball.pos);
-      ctx.beginPath();
-      ctx.strokeStyle = 'black';
-      ctx.arc(pos.x, pos.y, ballSize + ball.z * 3, 0, 2 * Math.PI);
-      ctx.fillStyle = "#c2c2c2";
-      ctx.fill();
-      ctx.stroke();
-      ctx.closePath();
-    }
-
-    function drawPerf(time) {
-      ctx.font = "12px serif";
-      ctx.fillText(time.toFixed(2) + 'ms', 2, 10);
-      ctx.fillText("State: " + gameState, 2, 30);
-    }
-
-    function drawScoreboard() {
-      ctx.font = "96px sans-serif";
-      ctx.fillStyle = 'lightgrey';
-      let pos = new Vec2(arena.center.x - 100, arena.top + 100);
-      worldPos = worldToScreen(pos);
-      ctx.fillText(score.red + " - " + score.blue, worldPos.x, worldPos.y);
-    }
-
-    function getRandomCoordinates(){
-      return new Vec2(
-        Math.floor(Math.random() * Math.floor(arena.width)), 
-        Math.floor(Math.random() * Math.floor(arena.height))
-      );
-    };
+    // Helper functions end
 
     socket.on('control_event', updatePlayerData);
     socket.on('player_disconnect', function(playerID){
@@ -405,6 +413,6 @@
       // delete players[playerID];
     })
 
-    window.requestAnimationFrame(handleUpdate);
+    window.requestAnimationFrame(handleGameTick);
   </script>
 </html>
