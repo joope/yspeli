@@ -205,6 +205,7 @@
             console.log("Goal!");
             goalTime = getTime();
             music.play();
+            socket.emit("triggersound", {sound:"vuvuzela"});
             while (getTime() - goalTime < 6000) {
               yield STATE_GOAL;
             }

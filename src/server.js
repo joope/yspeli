@@ -24,6 +24,11 @@ io.on('connection', function(socket){
       d: control.d
     })
   })
+
+  // Pass the triggersound message (sent by host) to all clients
+  socket.on('triggersound', function(msg) {
+    socket.broadcast.emit('playsound', msg);
+  });
   socket.on('disconnect', function(){
     io.emit('player_disconnect', playerID);
   });

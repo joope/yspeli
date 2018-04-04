@@ -22,6 +22,8 @@
 
     var touchArea = document.getElementById("touchArea");
     var ctx = touchArea.getContext("2d");
+    var audio = {}
+    audio["vuvuzela"] = new Audio('/vuvuzela_long.mp3');
 
     touchArea.width = window.innerWidth;
     touchArea.height = window.innerWidth;
@@ -110,8 +112,15 @@
           break;
       }
     });
-	
+
+    function playSound(sound_event) {
+      console.log("playsound", sound_event, audio);
+      audio[sound_event["sound"]].play()
+    }
+
     setInterval(sendControl, 30);
+
+    socket.on('playsound', playSound);
 
   </script>
 </html>
