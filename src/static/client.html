@@ -4,12 +4,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
       body {
-        margin: 10vh 0 0 0;
+        margin: 0;
         padding: 0;
+        background-color: black;
       }
       canvas {
         box-sizing: border-box;
-        border: 5px solid black;
+        width: 100%;
+        position: fixed;
+        bottom: 12vh;
       }
     </style>
     <script src="/socket.io/socket.io.js"></script>
@@ -36,17 +39,26 @@
 
     console.log(touchArea.width, touchArea.height);
 
+    ctx.fillStyle = 'rgb(70, 70, 70)';
+    ctx.fillRect(0, 0, touchArea.width, touchArea.height);
+
     function sendControl() {
       socket.emit('control', {v: velocity, d: direction});
     }
 
     function handlePosition(event) {
-      event.preventDefault();
 
       var surfaceSize = w_center - 32;
 
-      var touchX = event.touches[0].pageX - touchArea.offsetLeft;
-      var touchY = event.touches[0].pageY - touchArea.offsetTop;
+      var touchX = touchArea.width / 2;
+      var touchY = touchArea.height / 2;
+
+      if (event && event.touches) {
+        event.preventDefault();
+        touchX = event.touches[0].pageX - touchArea.offsetLeft;
+        touchY = event.touches[0].pageY - touchArea.offsetTop;
+      }
+
       var cx = touchArea.width / 2;
       var cy = touchArea.height / 2;
 
@@ -55,11 +67,13 @@
       var x = (touchX - w_center) / surfaceSize;
       var y = (touchY - y_center) / surfaceSize;
 
-      direction = Math.atan2(y, x);     // angle between screen center and touch position
-      velocity = Math.sqrt(x*x + y*y);  // distance from center, needs to be clamped on the server
+      if (event) {
+        direction = Math.atan2(y, x);     // angle between screen center and touch position
+        velocity = Math.sqrt(x*x + y*y);  // distance from center, needs to be clamped on the server
+      }
 
-      ctx.fillStyle = 'rgb(70, 70, 70)'
-      ctx.clearRect(0, 0, touchArea.width, touchArea.height);
+      ctx.fillStyle = 'rgb(70, 70, 70)';
+      ctx.fillRect(0, 0, touchArea.width, touchArea.height);
 
       var size = cx/2;
 
@@ -78,6 +92,8 @@
       ctx.fillStyle = 'black';
       ctx.lineWidth = 4;
       ctx.arc(touchX, touchY, size, 0, 2 * Math.PI);
+      ctx.fillStyle = 'red';
+      ctx.fill();
       ctx.stroke();
       ctx.restore();
       ctx.closePath();
@@ -91,6 +107,7 @@
 
     touchArea.addEventListener("touchend", function(){
       velocity = 0;
+      handlePosition(null, true);
     }, false);
 
     document.addEventListener('keydown', function(event){
