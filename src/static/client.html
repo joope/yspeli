@@ -19,7 +19,7 @@
   </body>
   <script>
     var socket = io();
-    
+
     var touchArea = document.getElementById("touchArea");
     var ctx = touchArea.getContext("2d");
 
@@ -43,17 +43,47 @@
     function handlePosition(event) {
       event.preventDefault();
 
-      const surfaceSize = w_center - 32;
+      var surfaceSize = w_center - 32;
+
+      var touchX = event.touches[0].pageX - touchArea.offsetLeft;
+      var touchY = event.touches[0].pageY - touchArea.offsetTop;
+      var cx = touchArea.width / 2;
+      var cy = touchArea.height / 2;
 
       // Both coordinates are divided by the same length to keep the aspect ratio
       // of the control surface square.
-      const x = (event.touches[0].pageX - w_center) / surfaceSize;
-      const y = (event.touches[0].pageY - y_center) / surfaceSize;
+      var x = (touchX - w_center) / surfaceSize;
+      var y = (touchY - y_center) / surfaceSize;
 
       direction = Math.atan2(y, x);     // angle between screen center and touch position
       velocity = Math.sqrt(x*x + y*y);  // distance from center, needs to be clamped on the server
 
-      //console.log("x", x, "y", y, "dir", direction, "angles", direction * 180 / Math.PI, "vel", velocity);
+      ctx.fillStyle = 'rgb(70, 70, 70)'
+      ctx.clearRect(0, 0, touchArea.width, touchArea.height);
+
+      var size = cx/2;
+
+      ctx.beginPath();
+      ctx.save();
+      ctx.strokeStyle = 'grey';
+      ctx.fillStyle = 'grey';
+      ctx.lineWidth = 4;
+      ctx.arc(cx, cy, size, 0, 2 * Math.PI);
+      ctx.stroke();
+      ctx.restore();
+      ctx.closePath();
+
+      ctx.beginPath();
+      ctx.save();
+      ctx.fillStyle = 'black';
+      ctx.lineWidth = 4;
+      ctx.arc(touchX, touchY, size, 0, 2 * Math.PI);
+      ctx.stroke();
+      ctx.restore();
+      ctx.closePath();
+
+      // console.log("x", x, "y", y, "dir", direction, "angles", direction * 180 / Math.PI, "vel", velocity);
+
     }
 
     touchArea.addEventListener("touchstart", handlePosition, false);
