@@ -2,6 +2,28 @@
   <head>
     <title>A Multiplayer Game</title>
     <style>
+      #flashmessage {
+        font-family: sans-serif;
+        font-size: 128px;
+        margin: 0;
+        position: absolute;
+        top: 25%;
+        left: 50%;
+        text-align: center;
+        margin-left: auto;
+        margin-right: auto;
+        transform: translate(-50%, -50%)
+      }
+      @keyframes fadein {
+        from
+            {
+              transform: scaleX(0);
+            }
+        to
+          {
+              transform: scaleX(1);
+          }
+      }
       body {
         margin: 0;
         padding: 0;
@@ -18,7 +40,10 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.0.9/howler.core.min.js"></script>
   </head>
   <body>
+    <div id="wrapper">
+    <span id="flashmessage"></span>
     <canvas id="game"></canvas>
+    </div>
   </body>
   <script>
     var socket = io();
@@ -29,10 +54,12 @@
 
     var ctx=canvas.getContext("2d");
 
+    var flashTimer = null;
+
     var music = new Howl({
       src: ['/motiv_music_1.wav'],
       volume: 0.5,
-    });  
+    });
 
     // Game settings -->
     let isGoal = false;
@@ -61,6 +88,8 @@
     let arenaGap = 75;
 
     let gameState = STATE_INVALID;
+
+    let Message = "Init";
 
     var score = {
       red: 0,
@@ -141,9 +170,11 @@
         yield STATE_INIT;
 
         while (getTime() - start < 2000) {
+          updateMessage("WARMUP", "BLACK", 2000);
           yield STATE_WARMUP;
         }
         initGamePositions();
+        updateMessage("PLAY", "GREEN", 3000);
         while (score.red < 3 && score.blue < 3) {
           yield STATE_GAME;
 
@@ -247,10 +278,12 @@
         if (ballInBlueGoal()) {
           score.red = score.red + 1;
           isGoal = true;
+          updateMessage("RED SCORES", "red", 6000);
         }
         if (ballInRedGoal()){
           score.blue = score.blue + 1;
           isGoal = true;
+          updateMessage("BLUE SCORES", "blue", 6000);
         }
       }
       // TODO bounce ball inside the goal
@@ -327,6 +360,29 @@
       let pos = new Vec2(arena.center.x - 100, arena.top + 100);
       worldPos = worldToScreen(pos);
       ctx.fillText(score.blue + " - " + score.red, worldPos.x, worldPos.y);
+    }
+
+    function updateMessage(text, style, timeout) {
+      /* var flashmessage = document.getElementById('flashmessage');
+      var newmsg = flashmessage.parentNode.replaceChild(flashmessage.cloneNode(true), flashmessage);
+      */
+      var newmsg = document.getElementById('flashmessage');
+      newmsg.innerHTML = text;
+      newmsg.style.color = style;
+      // newmsg.style.animation = "fadein 0.5s"
+      if (flashTimer != null) {
+        clearInterval(flashTimer);
+      }
+      flashTimer = setInterval(clearMessage, timeout);
+    }
+
+    function clearMessage() {
+        var message = document.getElementById('flashmessage');
+        message.innerHTML = "";
+        flashmessage.style.color = "black";
+        // flashmessage.style.animation = "";
+        clearInterval(flashTimer);
+        flashTimer = null;
     }
 
     // Helper functions -->
