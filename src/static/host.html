@@ -76,6 +76,11 @@
       volume: 0.5,
     });
 
+    var whistle = new Howl({
+      src: ['/whistle.wav'],
+      volume: 0.5,
+    });
+
     // Game settings -->
     let isGoal = false;
 
@@ -199,6 +204,7 @@
         }
         initGamePositions();
         updateMessage("PLAY", "GREEN", 3000);
+        whistle.play();
         while (score.red < 3 && score.blue < 3) {
           yield STATE_GAME;
 
