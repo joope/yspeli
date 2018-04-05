@@ -35,7 +35,8 @@
         position: absolute;
         top: 75%;
         left: 50%;
-        transform: translate(-50%, -50%)
+        transform: translate(-50%, -50%);
+        opacity: 0.8;
       }
       body {
         margin: 0;
@@ -311,10 +312,10 @@
         }
       }
       // TODO bounce ball inside the goal
-      if (!ballInBlueGoal() && ball.pos.x < left_pad || !ballInRedGoal() && ball.pos.x > right_pad) {
+      if (!ballInCenterArea() && ball.pos.x < left_pad || !ballInCenterArea() && ball.pos.x > right_pad) {
         ball.vel.x = -ball.vel.x;
       }
-      if (!isGoal) {
+      if (!isGoal && !ballInCenterArea()) {
         ball.pos.x = Math.max(left_pad, ball.pos.x);
         ball.pos.x = Math.min(right_pad, ball.pos.x);
       }
@@ -488,12 +489,16 @@
       return performance.now();
     }
 
+    function ballInCenterArea() {
+      return ball.pos.y >= goals[0].pos.y && ball.pos.y <= goals[0].pos.y + goals[0].height;
+    }
+
     function ballInBlueGoal() {
-      return (isGoal && ball.pos.x <= left_pad) || ball.pos.y >= goals[0].pos.y && ball.pos.y <= goals[0].pos.y + goals[0].height && ball.pos.x <= left_pad;
+      return (isGoal && ball.pos.x <= arena.left) || ball.pos.y >= goals[0].pos.y && ball.pos.y <= goals[0].pos.y + goals[0].height && ball.pos.x <= arena.left;
     }
 
     function ballInRedGoal() {
-      return (isGoal && ball.pos.x >= right_pad) || ball.pos.y >= goals[1].pos.y && ball.pos.y <= goals[1].pos.y + goals[1].height && ball.pos.x >= right_pad
+      return (isGoal && ball.pos.x >= arena.right) || ball.pos.y >= goals[1].pos.y && ball.pos.y <= goals[1].pos.y + goals[1].height && ball.pos.x >= arena.right
     }
 
     // Helper functions end
