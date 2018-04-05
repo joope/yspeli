@@ -185,13 +185,12 @@
     ]
 
     var canStart = false;
-    var startButton;
+    var startButton = document.getElementById('startbutton');
 
     // Game object initializations end
 
     function startGame(bool) {
-      canStart = bool;
-      startButton = document.getElementById('startbutton');
+      canStart = bool;      
       startButton.style.visibility = "hidden";
     }
 
@@ -200,6 +199,7 @@
         console.log("Started a new game");
         start = getTime();
         yield STATE_INIT;
+        startButton.style.visibility = "visible";
 
         updateMessage("WARMUP", "BLACK", 30000);
         while (!canStart) {
@@ -475,7 +475,6 @@
 
     function updatePlayerData(control_event) {
       if (!players[control_event.id]) {
-        console.log(control_event);
         return;
       }
       var player = players[control_event.id];
