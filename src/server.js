@@ -14,26 +14,35 @@ app.get('/host', function(req, res){
   res.sendFile(__dirname + '/static/host.html');
 });
 
+let serverId = '';
+
 io.on('connection', function(socket){
   var playerID = socket.id;
   console.log(playerID + ' connected');
-  socket.on('control', function(control){
-    io.emit('control_event', {
+  socket.on('control', function(control) {
+    io.to(serverId).emit('control_event', {
       id : playerID,
       v : control.v,
       d: control.d
     })
   })
-
+  socket.on('register', function(data) {
+    io.to(serverId).emit('register', {
+      playerID: socket.id, name: data.name
+    });
+  });
+  socket.on('registerServer', function(){
+    serverId = socket.id;
+  })
   // Pass the triggersound message (sent by host) to all clients
   socket.on('triggersound', function(msg) {
     socket.broadcast.emit('playsound', msg);
   });
   socket.on('disconnect', function(){
-    io.emit('player_disconnect', playerID);
+    io.to(serverId).emit('player_disconnect', playerID);
   });
 });
 
 http.listen(3000, function(){
-  console.log('listening on *:3000');
+  console.log('listening on :3000');
 });

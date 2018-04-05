@@ -39,6 +39,10 @@
 
     var controlInterval;
 
+    var playerName = window.prompt('Name enter');
+    if (!playerName) playerName = 'Anonyymi';
+    socket.emit('register', {name: playerName});
+
     console.log(touchArea.width, touchArea.height);
 
     ctx.fillStyle = 'rgb(70, 70, 70)';

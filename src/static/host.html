@@ -63,6 +63,8 @@
   <script>
     var socket = io();
 
+    socket.emit('registerServer');
+
     var canvas = document.getElementById("game");
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
@@ -94,6 +96,7 @@
     const STATE_INVALID = "invalid";
     const STATE_INIT = "init";
     const STATE_WARMUP = "warmup";
+    const STATE_TEAM_SELECT = "teamselect";
     const STATE_GAME = "game";
     const STATE_GOAL = "goal";
     const STATE_GOAL_CONTINUE = "goal_continue";
@@ -197,6 +200,11 @@
         while (!canStart) {
           yield STATE_WARMUP;
         }
+        updateMessage("CHOOSE YOUR TEAM", "RED", 10000);
+        teamselectTimer = getTime();
+        while (getTime() - teamselectTimer < 10000) {
+          yield STATE_TEAM_SELECT;
+        }
         initGamePositions();
         updateMessage("PLAY", "GREEN", 3000);
         while (score.red < 3 && score.blue < 3) {
@@ -216,6 +224,7 @@
               yield STATE_FACE_OFF;
             }
             music.stop();
+            canStart = false;
           }
         }
 
@@ -258,13 +267,17 @@
           updateBallPosition(dt);
       }
 
+      if (gameState === 'teamselect') {
+        updatePlayerTeams(players);
+      }
+
       drawArena();
       drawScoreboard();
       drawPlayers();
       drawBall();
       drawGoals();
-      drawDebug(performance.now() - t)
-      window.requestAnimationFrame(handleGameTick)
+      drawDebug(performance.now() - t);
+      window.requestAnimationFrame(handleGameTick);
     }
 
     // Object position calculations -->
@@ -275,6 +288,16 @@
         player.vel.y = (Math.sin(player.dir) + player.vel.y) * player.v;
         player.pos = updatePos(player.pos, Vec2.multiply(player.vel, dt));
       });
+    }
+
+    function updatePlayerTeams() {
+      forEachPlayer(function(player){
+        if (player.pos.x < arena.center.x) {
+          player.team = 0;
+        } else {
+          player.team = 1;
+        }
+      })
     }
 
     function updateBallPosition(dt) {
@@ -351,6 +374,8 @@
         ctx.moveTo(pos.x, pos.y);
         ctx.lineTo(pos.x + Math.cos(player.dir) * playerSize, pos.y + Math.sin(player.dir) * playerSize);
         ctx.stroke();
+        ctx.font = "24px Arial"
+        ctx.fillText(player.name, player.pos.x - ctx.measureText(player.name).width / 2, player.pos.y + playerSize * 2);
         ctx.closePath();
       });
     }
@@ -427,15 +452,25 @@
       }
     }
 
-    function updatePlayerData(control_event) {
-      if (!players[control_event.id]) {
-        players[control_event.id] = {
+    function registerPlayer(data) {
+      if (!players[data.playerID]){
+        players[data.playerID] = {
           pos: getRandomCoordinates(),
           v: 0,
           vel: new Vec2(0, 0),
           dir: 0,
-          team: Object.keys(players).length % 2
+          team: 0,
+          name: data.name
         }
+      } else {
+        players[data.playerID].name = data.name;
+      }
+    }
+
+    function updatePlayerData(control_event) {
+      if (!players[control_event.id]) {
+        console.log(control_event);
+        return;
       }
       var player = players[control_event.id];
       player.v = updateV(player.v, Math.max(0.0, Math.min(1.0, control_event.v)));
@@ -503,11 +538,12 @@
 
     // Helper functions end
 
+    socket.on('register', registerPlayer)
     socket.on('control_event', updatePlayerData);
     socket.on('player_disconnect', function(playerID){
       console.log(playerID + ' quit the game')
       // Remove comment to delete players:
-      // delete players[playerID];
+      delete players[playerID];
     })
 
     window.requestAnimationFrame(handleGameTick);
