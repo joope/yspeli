@@ -187,6 +187,7 @@
     ]
 
     var canStart = false;
+    var timer = 30;
     var startButton = document.getElementById('startbutton');
 
     // Game object initializations end
@@ -194,6 +195,18 @@
     function startGame(bool) {
       canStart = bool;
       startButton.style.visibility = "hidden";
+    }
+
+    function setTimer() {
+      startButton.innerHTML = "Start Game (" + timer + ")";
+      timer -= 1;
+      if (timer >= 0) {
+        window.setTimeout(setTimer, 1000);
+      } else {
+        startButton.style.visibility = "hidden";
+        canStart = true;
+        timer = 30;
+      }
     }
 
     let stateLogic = function*() {
@@ -211,6 +224,7 @@
         }
 
         updateMessage("WARMUP", "BLACK", 30000);
+        setTimer();
         while (!canStart) {
           yield STATE_WARMUP;
         }
@@ -368,7 +382,7 @@
       ctx.fillRect(0,0,canvas.width, canvas.height);
 
       // Foreground
-      ctx.fillStyle = 'green';
+      ctx.fillStyle = 'white';
       ctx.fillRect(pos.x, pos.y, arena.width, arena.height);
       ctx.lineWidth = 2;
 
