@@ -32,7 +32,7 @@ io.on('connection', function(socket){
   socket.on('register', function(data) {
     players[playerID] = {name: data.name, serverId: data.serverId};
     io.to(serverIds[data.serverId]).emit('register', {
-      playerID: playerID, name: data.name
+      playerID: playerID, name: data.name, emoji: data.emoji
     });
     console.log(serverIds);
     console.log(players);
@@ -53,7 +53,10 @@ io.on('connection', function(socket){
     io.to(playerID).emit('crash');
   })
   socket.on('disconnect', function(){
-    if (serverIds[playerID]) return;
+    if (serverIds[playerID]) {
+        delete serverIds.playerID;
+        return;
+    }
     io.to(getServerId(playerID)).emit('player_disconnect', playerID);
   });
 });
