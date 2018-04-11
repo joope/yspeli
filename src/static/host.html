@@ -106,12 +106,12 @@
     const STATE_TEAM_SELECT = "teamselect";
     const STATE_GAME = "game";
     const STATE_GOAL = "goal";
-    const STATE_GOAL_CONTINUE = "goal_continue";
     const STATE_FACE_OFF = "face_off";
     const STATE_PARTY = "party";
 
     let arenaGap = 75;
 
+    let oldGameState = STATE_INVALID;
     let gameState = STATE_INVALID;
 
     let Message = "Init";
@@ -212,9 +212,7 @@
     let stateLogic = function*() {
       while (true) {
         console.log("Started a new game");
-        start = getTime();
         yield STATE_INIT;
-        startButton.style.visibility = "visible";
 
         var timeout = function*(state, interval) {
           var start = getTime();
@@ -223,32 +221,17 @@
           }
         }
 
-        updateMessage("WARMUP", "BLACK", 30000);
-        setTimer();
         while (!canStart) {
           yield STATE_WARMUP;
         }
-        updateMessage("CHOOSE YOUR TEAM", "RED", 10000);
-
         yield* timeout(STATE_TEAM_SELECT, 10000);
-
-        initGamePositions();
-        updateMessage("PLAY", "GREEN", 3000);
-        whistle.play();
         while (score.red < 3 && score.blue < 3) {
           yield STATE_GAME;
 
           if (isGoal) {
-            console.log("Goal!");
-            goalTime = getTime();
-            music.play();
-            socket.emit("triggersound", {sound:"vuvuzela"});
-            timeout(STATE_GOAL, 6000);
-            yield STATE_GOAL_CONTINUE; // one frame for player position setup etc.
+            yield* timeout(STATE_GOAL, 6000);
             console.log("Face off");
-            timeout(STATE_FACE_OFF, 1000);
-            music.stop();
-            canStart = false;
+            yield* timeout(STATE_FACE_OFF, 1000);
           }
         }
 
@@ -265,16 +248,42 @@
     function handleGameTick() {
       t = performance.now();
 
+      oldGameState = gameState;
       gameState = stateMachine.next().value;
 
-      if (gameState == STATE_INIT) {
-        console.log("Initializing game");
-        initGamePositions();
-        score.red = 0;
-        score.blue = 0;
-      } else if (gameState == STATE_GOAL_CONTINUE) {
-        initGamePositions();
-        isGoal = false;
+      // Actions to do when entering a state
+
+      if (oldGameState != gameState) {
+        if (gameState == STATE_INIT) {
+          console.log("Initializing game");
+          startButton.style.visibility = "visible";
+          initGamePositions();
+          score.red = 0;
+          score.blue = 0;
+        } else if (gameState == STATE_WARMUP) {
+            updateMessage("WARMUP", "BLACK", 30000);
+            setTimer();
+        } else if (gameState == STATE_TEAM_SELECT) {
+            updateMessage("CHOOSE YOUR TEAM", "RED", 10000);
+        } else if (gameState == STATE_GAME) {
+            updateMessage("PLAY", "GREEN", 3000);
+            initGamePositions();
+            whistle.play();
+        } else if (gameState == STATE_GOAL) {
+            console.log("Goal!");
+            music.play();
+            socket.emit("triggersound", {sound:"vuvuzela"});
+        } else if (gameState == STATE_FACE_OFF) {
+          initGamePositions();
+          isGoal = false;
+        }
+
+        // Actions on specific state transitions
+
+        if (oldGameState == STATE_FACE_OFF && gameState == STATE_GAME) {
+            music.stop();
+            canStart = false;
+        }
       }
 
       for (let i=0;i<physicsTicksPerFrame;i++) {
