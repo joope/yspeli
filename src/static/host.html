@@ -415,7 +415,13 @@
         ctx.stroke();
         ctx.font = "24px Arial"
         ctx.fillText(player.name, player.pos.x - ctx.measureText(player.name).width / 2, player.pos.y + playerSize * 2);
+        ctx.font = "42px Arial";
+        ctx.save();
+        ctx.translate(player.pos.x, player.pos.y);
+        ctx.fillText(player.emoji, player.pos.x - ctx.measureText(player.emoji).width / 2, player.pos.y + 16);
+        ctx.rotate(player.dir)
         ctx.closePath();
+        ctx.restore();
       });
     }
 
@@ -500,7 +506,8 @@
           vel: new Vec2(0, 0),
           dir: 0,
           team: 0,
-          name: data.name
+          name: data.name,
+          emoji: data.emoji
         }
       } else {
         players[data.playerID].name = data.name;

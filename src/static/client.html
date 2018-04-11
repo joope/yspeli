@@ -9,15 +9,27 @@
         background-color: black;
       }
       canvas {
+        visibility: hidden;
         box-sizing: border-box;
         width: 100%;
         position: fixed;
         bottom: 12vh;
       }
+      #config {
+        width: 100vw;
+        height: 100vh;
+        z-index: 10;
+      }
     </style>
     <script src="/socket.io/socket.io.js"></script>
   </head>
   <body>
+    <form id="config">
+      <input id="server" type="text" placeholder="Server ID" />
+      <input id="name" type="text" placeholder="Player name"/>
+      <input id="emoji" type="text" placeholder="<emoji>"/>
+      <button type="submit">Send</button>
+    </form>
     <canvas id="touchArea"></canvas>
   </body>
   <script>
@@ -39,6 +51,21 @@
 
     var controlInterval;
 
+    document.getElementById("config").addEventListener("submit", setPlayerInfo,
+false);
+
+    function setPlayerInfo(event) {
+      event.preventDefault();
+      var serverId = document.getElementById("server").value;
+      var name = document.getElementById("name").value;
+      var emoji = document.getElementById("emoji").value;
+
+      // TODO check values
+      socket.emit('register', {serverId: serverId, name: name, emoji: emoji});
+      document.getElementById("config").style.visibility = "hidden";
+      document.getElementById("touchArea").style.visibility = "visible";
+    }
+    /*
     var serverId = window.localStorage.getItem('serverId') || 'AAAA';
     var playerName = window.localStorage.getItem('playerName') || window.prompt('Name enter');
     if (!serverId) serverId = 'AAAA';
@@ -46,6 +73,7 @@
     if (!playerName) playerName = 'Anonyymi';
     socket.emit('register', {serverId: serverId, name: playerName});
     window.localStorage.setItem('playerName', playerName);
+    */
 
     console.log(touchArea.width, touchArea.height);
 
