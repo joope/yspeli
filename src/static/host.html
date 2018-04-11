@@ -63,7 +63,9 @@
   <script>
     var socket = io();
 
-    socket.emit('registerServer');
+    socket.emit('registerServer', function(serverId){
+      console.log(serverId);
+    });
 
     var canvas = document.getElementById("game");
     canvas.width = window.innerWidth;
@@ -190,7 +192,7 @@
     // Game object initializations end
 
     function startGame(bool) {
-      canStart = bool;      
+      canStart = bool;
       startButton.style.visibility = "hidden";
     }
 
@@ -476,6 +478,7 @@
     }
 
     function registerPlayer(data) {
+      console.log(data);
       if (!players[data.playerID]){
         players[data.playerID] = {
           pos: getRandomCoordinates(),

@@ -14,12 +14,15 @@ app.get('/host', function(req, res){
   res.sendFile(__dirname + '/static/host.html');
 });
 
-let serverId = '';
+let serverIds = {};
+let players = {};
 
 io.on('connection', function(socket){
   var playerID = socket.id;
   console.log(playerID + ' connected');
   socket.on('control', function(control) {
+    if (!players[playerID]) return;
+    serverId = getServerId(playerID);
     io.to(serverId).emit('control_event', {
       id : playerID,
       v : control.v,
@@ -27,12 +30,20 @@ io.on('connection', function(socket){
     })
   })
   socket.on('register', function(data) {
-    io.to(serverId).emit('register', {
-      playerID: socket.id, name: data.name
+    players[playerID] = {name: data.name, serverId: data.serverId};
+    io.to(serverIds[data.serverId]).emit('register', {
+      playerID: playerID, name: data.name
     });
+    console.log(serverIds);
+    console.log(players);
   });
-  socket.on('registerServer', function(){
-    serverId = socket.id;
+  socket.on('registerServer', function(callback){
+    var serverId = 'AAAA';
+    if (Object.keys(serverIds).length > 0) {
+        var serverId = randomString(4);
+    }
+    serverIds[serverId] = socket.id;
+    callback(serverId);
   })
   // Pass the triggersound message (sent by host) to all clients
   socket.on('triggersound', function(msg) {
@@ -42,9 +53,22 @@ io.on('connection', function(socket){
     io.to(playerID).emit('crash');
   })
   socket.on('disconnect', function(){
-    io.to(serverId).emit('player_disconnect', playerID);
+    if (serverIds[playerID]) return;
+    io.to(getServerId(playerID)).emit('player_disconnect', playerID);
   });
 });
+
+function getServerId(playerID) {
+    var serverId = players[playerID] ? players[playerID].serverId : 'lol';
+    return serverIds[serverId];
+}
+
+function randomString(length) {
+    var chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    var result = '';
+    for (var i = length; i > 0; --i) result += chars[Math.floor(Math.random() * chars.length)];
+    return result;
+}
 
 http.listen(3000, function(){
   console.log('listening on :3000');
