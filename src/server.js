@@ -67,7 +67,7 @@ function getServerId(playerID) {
 }
 
 function randomString(length) {
-    var chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    var chars = '123456789ABCDEFGHIJKLMNPQRSTUVWXYZ';
     var result = '';
     for (var i = length; i > 0; --i) result += chars[Math.floor(Math.random() * chars.length)];
     return result;
