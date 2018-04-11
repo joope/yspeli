@@ -417,11 +417,11 @@
         ctx.beginPath();
         ctx.strokeStyle = ['blue', 'red'][player.team];
         ctx.fillStyle = ['blue', 'red'][player.team];
-        ctx.arc(pos.x, pos.y, playerSize, 0, 2 * Math.PI);
-        ctx.stroke();
-        ctx.moveTo(pos.x, pos.y);
-        ctx.lineTo(pos.x + Math.cos(player.dir) * playerSize, pos.y + Math.sin(player.dir) * playerSize);
-        ctx.stroke();
+        // ctx.arc(pos.x, pos.y, playerSize, 0, 2 * Math.PI);
+        // ctx.stroke();
+        // ctx.moveTo(pos.x, pos.y);
+        // ctx.lineTo(pos.x + Math.cos(player.dir) * playerSize, pos.y + Math.sin(player.dir) * playerSize);
+        // ctx.stroke();
         ctx.font = "24px Arial"
         ctx.fillText(player.name, player.pos.x - ctx.measureText(player.name).width / 2, player.pos.y + playerSize * 2);
         ctx.font = "72px Arial";
