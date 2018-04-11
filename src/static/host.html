@@ -62,9 +62,9 @@
   </body>
   <script>
     var socket = io();
-
+    var ID = '';
     socket.emit('registerServer', function(serverId){
-      console.log(serverId);
+      ID = serverId;
     });
 
     var canvas = document.getElementById("game");
@@ -94,8 +94,8 @@
     const physicsTicksPerFrame = 4;
     const simulationSpeed = 1.0;
 
-    const playerSize = 20;
-    const ballSize = 30;
+    const playerSize = 40;
+    const ballSize = 50;
     const borderPadding = 20;
 
     let cameraPos = new Vec2(0, 0);
@@ -336,7 +336,7 @@
         var delta = Vec2.subtract(ball.pos, player.pos);
 
         var distance = delta.magnitude();
-        if (distance <= 50 && ball.z < 2) {
+        if ((distance <= (playerSize * 2)) && ball.z < 2) {
           var direction = Math.atan2(delta.x, delta.y);
           ball.vel.x = (Math.sin(direction) + 0.5*player.vel.x) * player.v * 2;
           ball.vel.y = (Math.cos(direction) + 0.5*player.vel.y) * player.v * 2;
@@ -424,11 +424,11 @@
         ctx.stroke();
         ctx.font = "24px Arial"
         ctx.fillText(player.name, player.pos.x - ctx.measureText(player.name).width / 2, player.pos.y + playerSize * 2);
-        ctx.font = "42px Arial";
+        ctx.font = "72px Arial";
         ctx.save();
         ctx.translate(player.pos.x, player.pos.y);
         ctx.rotate(player.dir + Math.PI/2)
-        ctx.fillText(player.emoji, -ctx.measureText(player.emoji).width / 2, 16);
+        ctx.fillText(player.emoji, -ctx.measureText(player.emoji).width / 2, 32);
         ctx.closePath();
         ctx.restore();
       });
@@ -458,6 +458,7 @@
       ctx.fillStyle = 'rgb(255,255,255)';
       ctx.fillText(time.toFixed(2) + 'ms', 2, 10);
       ctx.fillText("State: " + gameState, 2, 30);
+      ctx.fillText("ID: " + ID, 2, 50);
     }
 
     function drawScoreboard() {
