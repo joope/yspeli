@@ -418,8 +418,8 @@
         ctx.font = "42px Arial";
         ctx.save();
         ctx.translate(player.pos.x, player.pos.y);
-        ctx.fillText(player.emoji, player.pos.x - ctx.measureText(player.emoji).width / 2, player.pos.y + 16);
-        ctx.rotate(player.dir)
+        ctx.rotate(player.dir + Math.PI/2)
+        ctx.fillText(player.emoji, -ctx.measureText(player.emoji).width / 2, 16);
         ctx.closePath();
         ctx.restore();
       });

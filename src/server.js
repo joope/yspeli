@@ -32,7 +32,7 @@ io.on('connection', function(socket){
   socket.on('register', function(data) {
     players[playerID] = {name: data.name, serverId: data.serverId};
     io.to(serverIds[data.serverId]).emit('register', {
-      playerID: playerID, name: data.name, emoji: '😀'
+      playerID: playerID, name: data.name, emoji: data.emoji
     });
     console.log(serverIds);
     console.log(players);
