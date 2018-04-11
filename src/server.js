@@ -62,7 +62,7 @@ io.on('connection', function(socket){
 });
 
 function getServerId(playerID) {
-    var serverId = players[playerID] ? players[playerID].serverId : 'lol';
+    var serverId = players[playerID] ? players[playerID].serverId : 'lolol';
     return serverIds[serverId];
 }
 
