@@ -38,6 +38,9 @@ io.on('connection', function(socket){
   socket.on('triggersound', function(msg) {
     socket.broadcast.emit('playsound', msg);
   });
+  socket.on('crash', function(playerID) {
+    io.to(playerID).emit('crash');
+  })
   socket.on('disconnect', function(){
     io.to(serverId).emit('player_disconnect', playerID);
   });

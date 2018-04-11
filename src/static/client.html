@@ -39,9 +39,10 @@
 
     var controlInterval;
 
-    var playerName = window.prompt('Name enter');
+    var playerName = window.localStorage.getItem('playerName') || window.prompt('Name enter');
     if (!playerName) playerName = 'Anonyymi';
     socket.emit('register', {name: playerName});
+    window.localStorage.setItem('playerName', playerName);
 
     console.log(touchArea.width, touchArea.height);
 
@@ -139,9 +140,15 @@
       audio[sound_event["sound"]].play()
     }
 
+    function vibrate(){
+      console.log('crash');
+      window.navigator.vibrate(200);
+    }
+
     setInterval(sendControl, 30);
 
     socket.on('playsound', playSound);
+    socket.on('crash', vibrate);
 
   </script>
 </html>

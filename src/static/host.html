@@ -307,7 +307,7 @@
     }
 
     function updateBallPosition(dt) {
-      forEachPlayer(function(player){
+      forEachPlayer(function(player, i, playerID){
         var delta = Vec2.subtract(ball.pos, player.pos);
 
         var distance = delta.magnitude();
@@ -318,6 +318,7 @@
           ball.vz = ball.vz + player.v;
           player.pos = Vec2.subtract(player.pos, Vec2.multiply(delta, 0.1));
           player.v = player.v * 0.2;
+          socket.emit('crash', playerID);
         }
       })
       ball.vel = Vec2.multiply(ball.vel, 0.99);
@@ -359,13 +360,29 @@
 
     function drawArena() {
       let pos = worldToScreen(new Vec2(arena.left, arena.top));
-      ctx.fillStyle = 'rgb(70, 70, 70)'
+
+      // Background
+      ctx.fillStyle = 'rgb(100, 100, 100)';
       ctx.fillRect(0,0,canvas.width, canvas.height);
-      ctx.strokeStyle = 'black';
-      ctx.lineWidth = 2;
-      ctx.fillStyle = 'rgb(255, 255, 255)'
+
+      // Foreground
+      ctx.fillStyle = 'green';
       ctx.fillRect(pos.x, pos.y, arena.width, arena.height);
-      ctx.lineWidth = 1;
+      ctx.lineWidth = 2;
+
+      // Center line
+      ctx.beginPath();
+      ctx.strokeStyle = 'lightgrey';
+      ctx.moveTo(arena.center.x, 0);
+      ctx.lineTo(arena.center.x, arena.bottom);
+      ctx.closePath();
+      ctx.stroke();
+
+      // Center circle
+      ctx.beginPath();
+      ctx.arc(arena.center.x, arena.center.y, 100, 0, 2 * Math.PI);
+      ctx.closePath();
+      ctx.stroke();
     }
 
     function drawPlayers() {
@@ -454,7 +471,7 @@
     function forEachPlayer(callBack) {
       var keys = Object.keys(players);
       for (i = 0; i < keys.length; i++) {
-        callBack(players[keys[i]], i);
+        callBack(players[keys[i]], i, keys[i]);
       }
     }
 
