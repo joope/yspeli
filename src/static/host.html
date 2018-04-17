@@ -71,6 +71,11 @@
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
+    window.onresize = function(event) {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+
     var ctx=canvas.getContext("2d");
 
     var flashTimer = null;
@@ -415,10 +420,10 @@
         let pos = worldToScreen(player.pos);
 
         ctx.beginPath();
-        ctx.strokeStyle = ['blue', 'red'][player.team];
-        ctx.fillStyle = ['blue', 'red'][player.team];
-        // ctx.arc(pos.x, pos.y, playerSize, 0, 2 * Math.PI);
-        // ctx.stroke();
+        ctx.fillStyle = ['lightblue', 'lightpink'][player.team];
+        ctx.fillStyle = ['lightblue', 'lightpink'][player.team];
+        ctx.arc(pos.x, pos.y, playerSize, 0, 2 * Math.PI);
+        ctx.fill();
         // ctx.moveTo(pos.x, pos.y);
         // ctx.lineTo(pos.x + Math.cos(player.dir) * playerSize, pos.y + Math.sin(player.dir) * playerSize);
         // ctx.stroke();

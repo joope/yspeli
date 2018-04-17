@@ -39,9 +39,9 @@ io.on('connection', function(socket){
   });
   socket.on('registerServer', function(callback){
     var serverId = 'AAAA';
-    if (Object.keys(serverIds).length > 0) {
-        var serverId = randomString(4);
-    }
+    // if (Object.keys(serverIds).length > 0) {
+    //     var serverId = randomString(4);
+    // }
     serverIds[serverId] = socket.id;
     callback(serverId);
   })
