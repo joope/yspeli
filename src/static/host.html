@@ -330,26 +330,32 @@
       var diff = new Vec2(0, 0); // TODO make these global?
       var n1 = new Vec2(0, 0);
       var n2 = new Vec2(0, 0);
-      var newvel1 = new Vec2(0, 0);
-      var newvel2 = new Vec2(0, 0);
+      var temp = new Vec2(0, 0);
 
       // TODO handle each pair only once?
       for (i = 0; i < keys.length; i++) {
-      for (j = 0; j < keys.length; j++) {
+      for (j = i; j < keys.length; j++) {
         if (i == j) continue;
         var pl1 = players[keys[i]];
         var pl2 = players[keys[j]];
 
         Vec2.subtract_inplace(pl1.pos, pl2.pos, diff);
         var dist = diff.magnitude();
-        if (dist > playerSize*2-5) {
+        var threshold = playerSize*2-5;
+        if (dist > threshold) {
           continue;
         }
 
-        // https://www.gamasutra.com/view/feature/131424/pool_hall_lessons_fast_accurate_.php?page=3
-
         // normalize diff vector
         Vec2.multiply_inplace(diff, 1.0/dist, diff);
+
+        // Move both players outwards
+        Vec2.multiply_inplace(diff, 0.5*(threshold - dist)+5, temp);
+        Vec2.add_inplace(pl1.pos, temp, pl1.pos);
+        Vec2.subtract_inplace(pl2.pos, temp, pl2.pos);
+
+        // https://www.gamasutra.com/view/feature/131424/pool_hall_lessons_fast_accurate_.php?page=3
+
 
         var a1 = Vec2.dot(pl1.vel, diff);
         var a2 = Vec2.dot(pl2.vel, diff);
@@ -376,7 +382,9 @@
         diff.copyTo(n2);
         Vec2.multiply_inplace(n2, mass1, n2);
         Vec2.multiply_inplace(n2, optimizedP, n2);
+        //console.log("aluks", pl2.vel, players[keys[j]].vel);
         Vec2.add_inplace(pl2.vel, n1, pl2.vel);
+        //console.log("lopuks", pl2.vel, players[keys[j]].vel);
 
         //pl1.vel.x = 100;
         //pl2.vel.x = 100;
