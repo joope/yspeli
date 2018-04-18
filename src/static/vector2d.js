@@ -96,6 +96,10 @@ Vec2.prototype = {
   clone: function() {
     return new Vec2(this.x, this.y);
   },
+  copyTo: function(v) {
+    v.x = this.x;
+    v.y = this.y;
+  },
   set: function(x, y) {
     this.x = x; this.y = y;
     return this;
@@ -110,15 +114,23 @@ Vec2.add = function(a, b) {
   if (b instanceof Vec2) return new Vec2(a.x + b.x, a.y + b.y);
   else return new Vec2(a.x + b, a.y + b);
 };
+Vec2.add_inplace = function(a, b, out) {
+  if (b instanceof Vec2) {
+    out.x = a.x + b.x;
+    out.y = a.y + b.y;
+  } else {
+    throw new Error("Need vec2");
+  }
+};
 Vec2.subtract = function(a, b) {
   if (b instanceof Vec2) return new Vec2(a.x - b.x, a.y - b.y);
   else return new Vec2(a.x - b, a.y - b);
 };
 
-Vec2.subtract_inplace = function(a, b, c) {
+Vec2.subtract_inplace = function(a, b, out) {
   if (b instanceof Vec2) {
-    c.x = a.x - b.x;
-    c.y = a.y - b.y;
+    out.x = a.x - b.x;
+    out.y = a.y - b.y;
   } else {
     throw new Error("Need vec2");
   }
@@ -127,6 +139,16 @@ Vec2.subtract_inplace = function(a, b, c) {
 Vec2.multiply = function(a, b) {
   if (b instanceof Vec2) return new Vec2(a.x * b.x, a.y * b.y);
   else return new Vec2(a.x * b, a.y * b);
+};
+
+Vec2.multiply_inplace = function(a, b, out) {
+  if (b instanceof Vec2) {
+    out.x = a.x * b.x;
+    out.y = a.y * b.y;
+  } else {
+    out.x = a.x * b;
+    out.y = a.y * b;
+  }
 };
 Vec2.divide = function(a, b) {
   if (b instanceof Vec2) return new Vec2(a.x / b.x, a.y / b.y);

@@ -320,13 +320,20 @@
 
     function updatePlayerPositions(dt) {
       forEachPlayer(function(player){
-        player.vel.x = (Math.cos(player.dir) + player.vel.x) * player.v;
-        player.vel.y = (Math.sin(player.dir) + player.vel.y) * player.v;
+        player.vel.x = player.vel.x + (Math.cos(player.dir) * player.v);
+        player.vel.y = player.vel.y + (Math.sin(player.dir) * player.v);
         player.pos = updatePos(player.pos, Vec2.multiply(player.vel, dt));
+        Vec2.multiply_inplace(player.vel, 0.99, player.vel);
       });
 
       var keys = Object.keys(players);
-      var diff = new Vec2(0, 0);
+      var diff = new Vec2(0, 0); // TODO make these global?
+      var n1 = new Vec2(0, 0);
+      var n2 = new Vec2(0, 0);
+      var newvel1 = new Vec2(0, 0);
+      var newvel2 = new Vec2(0, 0);
+
+      // TODO handle each pair only once?
       for (i = 0; i < keys.length; i++) {
       for (j = 0; j < keys.length; j++) {
         if (i == j) continue;
@@ -334,14 +341,45 @@
         var pl2 = players[keys[j]];
 
         Vec2.subtract_inplace(pl1.pos, pl2.pos, diff);
-        var dist = Vec2.magnitude(diff);
-        if (dist < playerSize) {
-          pl1.pos.x = 100;
-          pl1.pos.y = 100;
-          pl2.pos.x = 200;
-          pl2.pos.y = 200;
+        var dist = diff.magnitude();
+        if (dist > playerSize*2-5) {
+          continue;
         }
 
+        // https://www.gamasutra.com/view/feature/131424/pool_hall_lessons_fast_accurate_.php?page=3
+
+        // normalize diff vector
+        Vec2.multiply_inplace(diff, 1.0/dist, diff);
+
+        var a1 = Vec2.dot(pl1.vel, diff);
+        var a2 = Vec2.dot(pl2.vel, diff);
+
+        // Using the optimized version,
+        // optimizedP =  2(a1 - a2)
+        //              -----------
+        //                m1 + m2
+        const mass1 = 1.0;
+        const mass2 = 1.0;
+        var optimizedP = (2.0 * (a1 - a2)) / (mass1 + mass2);
+
+         // Calculate v1', the new movement vector of circle1
+        // v1' = v1 - optimizedP * m2 * n
+        // Vector v1b = v1 - optimizedP * circle2.mass * n;
+        diff.copyTo(n1);
+        Vec2.multiply_inplace(n1, mass2, n1);
+        Vec2.multiply_inplace(n1, optimizedP, n1);
+        Vec2.subtract_inplace(pl1.vel, n1, pl1.vel);
+
+        // Calculate v1', the new movement vector of circle1
+        // v2' = v2 + optimizedP * m1 * n
+        // Vector v2' = v2 + optimizedP * circle1.mass * n;
+        diff.copyTo(n2);
+        Vec2.multiply_inplace(n2, mass1, n2);
+        Vec2.multiply_inplace(n2, optimizedP, n2);
+        Vec2.add_inplace(pl2.vel, n1, pl2.vel);
+
+        //pl1.vel.x = 100;
+        //pl2.vel.x = 100;
 
         //player.vel.x = (Math.cos(player.dir) + player.vel.x) * player.v;
         //player.vel.y = (Math.sin(player.dir) + player.vel.y) * player.v;
@@ -364,15 +402,18 @@
     function updateBallPosition(dt) {
       forEachPlayer(function(player, i, playerID){
         var delta = Vec2.subtract(ball.pos, player.pos);
-
+        var normal = new Vec2(delta.x, delta.y); // TODO inplace?
+        normal.normalize();
         var distance = delta.magnitude();
-        if ((distance <= (playerSize * 2)) && ball.z < 2) {
+        var threshold = playerSize + ballSize;
+
+        if ((distance <= threshold) && ball.z < 2) {
           var direction = Math.atan2(delta.x, delta.y);
-          ball.vel.x = (Math.sin(direction) + 0.5*player.vel.x) * player.v * 2;
-          ball.vel.y = (Math.cos(direction) + 0.5*player.vel.y) * player.v * 2;
-          ball.vz = ball.vz + player.v;
-          player.pos = Vec2.subtract(player.pos, Vec2.multiply(delta, 0.1));
-          player.v = player.v * 0.2;
+          ball.vel.x = (Math.sin(direction) + 1.0 * player.vel.x);
+          ball.vel.y = (Math.cos(direction) + 1.0 * player.vel.y);
+          ball.vz = ball.vz + 0.2*player.vel.magnitude();
+          Vec2.subtract_inplace(player.pos, Vec2.multiply(normal, threshold - distance), player.pos);
+          Vec2.multiply_inplace(player.vel, -0.2, player.vel);
           socket.emit('crash', playerID);
         }
       })
@@ -559,7 +600,7 @@
         return;
       }
       var player = players[control_event.id];
-      player.v = updateV(player.v, Math.max(0.0, Math.min(1.0, control_event.v)));
+      player.v = 0.1*updateV(player.v, Math.max(0.0, Math.min(1.0, control_event.v)));
 
       // TODO store target dir but update the smoothed direction later
       player.dir = control_event.d;
