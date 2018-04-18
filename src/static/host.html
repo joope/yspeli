@@ -320,9 +320,41 @@
 
     function updatePlayerPositions(dt) {
       forEachPlayer(function(player){
-        player.vel.x = player.vel.x + (Math.cos(player.dir) * player.v);
-        player.vel.y = player.vel.y + (Math.sin(player.dir) * player.v);
-        player.pos = updatePos(player.pos, Vec2.multiply(player.vel, dt));
+        /*
+        var dir = new Vec2(Math.cos(player.dir), Math.sin(player.dir));
+        var weight = Vec2.dot(dir, player.vel) / player.vel.magnitude();
+        if (player.vel.x == 0.0 && player.vel.y == 0.0) {
+          // TODO epsilon check
+          weight = 0.0;
+        }
+        weight = Math.max(Math.cos(Math.min(Math.PI, player.vel.magnitude() / 2.0)), weight);
+        console.log("weight", weight);
+        weight *= 0.1;
+        */
+        weight = 0.1;
+
+        player.vel.x = player.vel.x + (Math.cos(player.dir) * player.v * weight);
+        player.vel.y = player.vel.y + (Math.sin(player.dir) * player.v * weight);
+
+        Vec2.add_inplace(player.pos, Vec2.multiply(player.vel, dt), player.pos);
+        const newpos = player.pos.clone();
+        newpos.x = Math.max(arena.left + playerSize, newpos.x);
+        newpos.y = Math.max(arena.top, newpos.y);
+        newpos.x = Math.min(arena.right - playerSize, newpos.x);
+        newpos.y = Math.min(arena.bottom, newpos.y);
+
+        // If position changed above we know we hit a border.
+        if (newpos.x != player.pos.x) {
+          player.vel.x *= -1.0;
+        }
+        if (newpos.y != player.pos.y) {
+          player.vel.y *= -1.0;
+        }
+
+        //TODO mirror also direction
+
+        newpos.copyTo(player.pos); // Actually update player position
+
         Vec2.multiply_inplace(player.vel, 0.99, player.vel);
       });
 
@@ -608,7 +640,7 @@
         return;
       }
       var player = players[control_event.id];
-      player.v = 0.1*updateV(player.v, Math.max(0.0, Math.min(1.0, control_event.v)));
+      player.v = updateV(player.v, Math.max(0.0, Math.min(1.0, control_event.v)));
 
       // TODO store target dir but update the smoothed direction later
       player.dir = control_event.d;
@@ -622,15 +654,6 @@
       if (new_v > maxV) return maxV;
 
       return new_v;
-    }
-
-    function updatePos(pos, vel) {
-      const newpos = Vec2.add(pos, vel);
-      newpos.x = Math.max(arena.left + playerSize, newpos.x);
-      newpos.y = Math.max(arena.top, newpos.y);
-      newpos.x = Math.min(arena.right - playerSize, newpos.x);
-      newpos.y = Math.min(arena.bottom, newpos.y);
-      return newpos;
     }
 
     function worldToScreen(pWorld) {
