@@ -324,6 +324,31 @@
         player.vel.y = (Math.sin(player.dir) + player.vel.y) * player.v;
         player.pos = updatePos(player.pos, Vec2.multiply(player.vel, dt));
       });
+
+      var keys = Object.keys(players);
+      var diff = new Vec2(0, 0);
+      for (i = 0; i < keys.length; i++) {
+      for (j = 0; j < keys.length; j++) {
+        if (i == j) continue;
+        var pl1 = players[keys[i]];
+        var pl2 = players[keys[j]];
+
+        Vec2.subtract_inplace(pl1.pos, pl2.pos, diff);
+        var dist = Vec2.magnitude(diff);
+        if (dist < playerSize) {
+          pl1.pos.x = 100;
+          pl1.pos.y = 100;
+          pl2.pos.x = 200;
+          pl2.pos.y = 200;
+        }
+
+
+        //player.vel.x = (Math.cos(player.dir) + player.vel.x) * player.v;
+        //player.vel.y = (Math.sin(player.dir) + player.vel.y) * player.v;
+        //player.pos = updatePos(player.pos, Vec2.multiply(player.vel, dt));
+        //callBack(players[keys[i]], i, keys[i]);
+      }
+      }
     }
 
     function updatePlayerTeams() {

@@ -73,7 +73,7 @@ Vec2.prototype = {
     return this.x * v.y - this.y * v.x
   },
   magnitude: function() {
-    return Math.sqrt(this.dot(this));
+    return Math.sqrt(this.x*this.x + this.y*this.y);
   },
   normalize: function() {
     return this.divide(this.magnitude());
@@ -114,6 +114,16 @@ Vec2.subtract = function(a, b) {
   if (b instanceof Vec2) return new Vec2(a.x - b.x, a.y - b.y);
   else return new Vec2(a.x - b, a.y - b);
 };
+
+Vec2.subtract_inplace = function(a, b, c) {
+  if (b instanceof Vec2) {
+    c.x = a.x - b.x;
+    c.y = a.y - b.y;
+  } else {
+    throw new Error("Need vec2");
+  }
+};
+
 Vec2.multiply = function(a, b) {
   if (b instanceof Vec2) return new Vec2(a.x * b.x, a.y * b.y);
   else return new Vec2(a.x * b, a.y * b);
