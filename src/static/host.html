@@ -198,7 +198,7 @@
     ]
 
     var canStart = false;
-    var timer = 30;
+    var timer = 60;
     var startButton = document.getElementById('startbutton');
 
     // Game object initializations end
@@ -216,7 +216,7 @@
       } else {
         startButton.style.visibility = "hidden";
         canStart = true;
-        timer = 30;
+        timer = 60;
       }
     }
 
@@ -326,21 +326,44 @@
 
     function updatePlayerPositions(dt) {
       forEachPlayer(function(player){
-        /*
+        // TODO Try to reuse vector variables here in order not to generate too much garbage.
+
         var dir = new Vec2(Math.cos(player.dir), Math.sin(player.dir));
-        var weight = Vec2.dot(dir, player.vel) / player.vel.magnitude();
-        if (player.vel.x == 0.0 && player.vel.y == 0.0) {
-          // TODO epsilon check
+        var velocityDir = player.vel.clone();
+        velocityDir.normalize();
+        var velocityMag = player.vel.magnitude();
+
+        var samedir = dir.dot(velocityDir);
+
+        /*
+        var weight = Vec2.dot(dir, player.vel) / mag;
+        if (mag < 0.01) {
           weight = 0.0;
         }
         weight = Math.max(Math.cos(Math.min(Math.PI, player.vel.magnitude() / 2.0)), weight);
         console.log("weight", weight);
         weight *= 0.1;
         */
-        weight = 0.1;
 
-        player.vel.x = player.vel.x + (Math.cos(player.dir) * player.v * weight);
-        player.vel.y = player.vel.y + (Math.sin(player.dir) * player.v * weight);
+        weight = Math.max(0.0, samedir);
+
+        // Drive velocity points towards the new direction controlled by player
+        // but also keeps the whole accumulated speed.
+
+        var driveVelocity = new Vec2(0,0);
+        Vec2.multiply_inplace(dir, Math.max(velocityMag, player.v), driveVelocity);
+
+        player.vel = Vec2.mix(player.vel, driveVelocity, weight);
+
+        Vec2.add_inplace(player.vel, Vec2.multiply(dir, player.v*0.22), player.vel);
+
+        //driveVelocity.copyTo(player.vel);
+
+        //Vec2.add_inplace(player.vel, driveVelocity, player.vel);
+        //Vec2.add_inplace(player.vel, driveVelocity, player.vel);
+
+        //player.vel.x = player.vel.x + (Math.cos(player.dir) * player.v * weight);
+        //player.vel.y = player.vel.y + (Math.sin(player.dir) * player.v * weight);
 
         Vec2.add_inplace(player.pos, Vec2.multiply(player.vel, dt), player.pos);
         const newpos = player.pos.clone();
@@ -361,7 +384,9 @@
 
         newpos.copyTo(player.pos); // Actually update player position
 
-        Vec2.multiply_inplace(player.vel, 0.99, player.vel);
+        Vec2.multiply_inplace(player.vel, 0.995, player.vel);
+        player.v *= 0.9;
+
       });
 
       var keys = Object.keys(players);
@@ -394,7 +419,6 @@
 
         // https://www.gamasutra.com/view/feature/131424/pool_hall_lessons_fast_accurate_.php?page=3
 
-
         var a1 = Vec2.dot(pl1.vel, diff);
         var a2 = Vec2.dot(pl2.vel, diff);
 
@@ -420,17 +444,7 @@
         diff.copyTo(n2);
         Vec2.multiply_inplace(n2, mass1, n2);
         Vec2.multiply_inplace(n2, optimizedP, n2);
-        //console.log("aluks", pl2.vel, players[keys[j]].vel);
         Vec2.add_inplace(pl2.vel, n1, pl2.vel);
-        //console.log("lopuks", pl2.vel, players[keys[j]].vel);
-
-        //pl1.vel.x = 100;
-        //pl2.vel.x = 100;
-
-        //player.vel.x = (Math.cos(player.dir) + player.vel.x) * player.v;
-        //player.vel.y = (Math.sin(player.dir) + player.vel.y) * player.v;
-        //player.pos = updatePos(player.pos, Vec2.multiply(player.vel, dt));
-        //callBack(players[keys[i]], i, keys[i]);
       }
       }
     }
@@ -455,9 +469,10 @@
 
         if ((distance <= threshold) && ball.z < 2) {
           var direction = Math.atan2(delta.x, delta.y);
-          ball.vel.x = (Math.sin(direction) + 1.0 * player.vel.x);
-          ball.vel.y = (Math.cos(direction) + 1.0 * player.vel.y);
-          ball.vz = ball.vz + 0.2*player.vel.magnitude();
+          var slowdown = 0.6;
+          ball.vel.x = (Math.sin(direction) + slowdown * player.vel.x);
+          ball.vel.y = (Math.cos(direction) + slowdown * player.vel.y);
+          ball.vz = ball.vz + 0.12*player.vel.magnitude();
           Vec2.subtract_inplace(player.pos, Vec2.multiply(normal, threshold - distance), player.pos);
           Vec2.multiply_inplace(player.vel, -0.2, player.vel);
           socket.emit('crash', playerID);
@@ -653,7 +668,6 @@
     }
 
     function updateV(v, control_v) {
-      if (control_v === 0) return v * 0.99;
       var new_v = control_v;
 
       if (new_v < -maxV) return -maxV;

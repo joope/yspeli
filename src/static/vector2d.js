@@ -163,3 +163,8 @@ Vec2.dot = function(a, b) {
 Vec2.cross = function(a, b) {
   return a.x * b.y - a.y * b.x;
 };
+Vec2.mix = function(a, b, blend) {
+  return new Vec2(
+    blend*a.x + (1.0 - blend)*b.x,
+    blend*a.y + (1.0 - blend)*b.y);
+}
