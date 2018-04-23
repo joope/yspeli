@@ -55,9 +55,13 @@
   </head>
   <body>
     <div id="wrapper">
-    <span id="flashmessage"></span>
-    <button id="startbutton" onclick="startGame(true)">Start Game</button>
-    <canvas id="game"></canvas>
+      <span id="flashmessage"></span>
+      <button id="startbutton" onclick="startGame(true)">Start Game</button>
+      <canvas id="game"></canvas>
+    </div>
+    <div style="display:none;">
+      <img id="car_red" src="/redcar.svg" width="30" height="70">
+      <img id="car_blue" src="/bluecar.svg" width="30" height="70">
     </div>
   </body>
   <script>
@@ -77,6 +81,8 @@
     };
 
     var ctx=canvas.getContext("2d");
+    var car_red = document.getElementById('car_red');
+    var car_blue = document.getElementById('car_blue');
 
     var flashTimer = null;
 
@@ -527,9 +533,8 @@
 
         ctx.beginPath();
         ctx.fillStyle = ['lightblue', 'lightpink'][player.team];
-        ctx.fillStyle = ['lightblue', 'lightpink'][player.team];
-        ctx.arc(pos.x, pos.y, playerSize, 0, 2 * Math.PI);
-        ctx.fill();
+        // ctx.arc(pos.x, pos.y, playerSize, 0, 2 * Math.PI);
+        // ctx.fill();
         // ctx.moveTo(pos.x, pos.y);
         // ctx.lineTo(pos.x + Math.cos(player.dir) * playerSize, pos.y + Math.sin(player.dir) * playerSize);
         // ctx.stroke();
@@ -538,7 +543,8 @@
         ctx.font = "72px Arial";
         ctx.save();
         ctx.translate(player.pos.x, player.pos.y);
-        ctx.rotate(player.dir + Math.PI/2)
+        ctx.rotate(player.dir + Math.PI/2);
+        ctx.drawImage([car_blue, car_red][player.team], -40, -50, 80, 100);
         ctx.fillText(player.emoji, -ctx.measureText(player.emoji).width / 2, 32);
         ctx.closePath();
         ctx.restore();
