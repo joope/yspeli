@@ -60,8 +60,8 @@
       <canvas id="game"></canvas>
     </div>
     <div style="display:none;">
-      <img id="car_red" src="/redcar.svg" width="30" height="70">
-      <img id="car_blue" src="/bluecar.svg" width="30" height="70">
+      <img id="car_red" src="/redcar.svg">
+      <img id="car_blue" src="/bluecar.svg">
       <img id="ball" src="/ball.png">
       <img id="grass" src="/grass.png">
     </div>
@@ -80,6 +80,8 @@
     window.onresize = function(event) {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
+      initializeGame();
+      drawGrass();
     };
 
     var ctx=canvas.getContext("2d");
@@ -90,18 +92,8 @@
 
     // Render the background image
     var bgCanvas = document.createElement("canvas");
-    imgGrass.addEventListener('load', function () {
-        bgCanvas.width = canvas.width;
-        bgCanvas.height = canvas.height;
-        var ctx=bgCanvas.getContext("2d");
-        var w = imgGrass.width;
-        var h = imgGrass.height;
-        for (var x=0;x<Math.ceil(bgCanvas.width/w);x++) {
-        for (var y=0;y<Math.ceil(bgCanvas.height/h);y++) {
-            ctx.drawImage(imgGrass, x*w, y*h, w, h);
-        }
-        }
-    });
+
+    imgGrass.addEventListener('load', drawGrass);
 
     var flashTimer = null;
 
@@ -127,7 +119,7 @@
       playerSize: 40,
       ballSize: 50,
       stiffness: 0.98,
-      turnSpeed: 0.03
+      turnSpeed: 0.04
     }
 
     const maxV = 0.9;
@@ -159,70 +151,75 @@
 
     // Game object initializations -->
     var players = {}
-    var ball = {
-      pos: new Vec2(300, 300),
-      z: 0.0,
-      vel: new Vec2(0, 0),
-      vz: 0.0,
-      az: 0.0,
-      angle: 0.0,
-      color: '#c2c2c2'
+    var ball, arena, goals;
+    function initializeGame() {
+
+      ball = {
+        pos: new Vec2(300, 300),
+        z: 0.0,
+        vel: new Vec2(0, 0),
+        vz: 0.0,
+        az: 0.0,
+        angle: 0.0,
+        color: '#c2c2c2'
+      }
+      arena = {
+        left: arenaGap,
+        right: canvas.width - arenaGap,
+        top: 0,
+        bottom: canvas.height
+      }
+
+      arena.width = arena.right - arena.left;
+      arena.height = arena.bottom - arena.top;
+      arena.center = new Vec2(arena.left + arena.width/2, arena.top + arena.height/2);
+
+      const goalHeight = arena.height * 0.2;
+      const goalWidth = arenaGap;
+
+      function Goal(args) {
+        this.pos = args.pos;
+        this.width = args.width;
+        this.height = args.height;
+        this.fillStyle = args.fillStyle;
+        this.topCorner = args.topCorner;
+        this.bottomCorner = args.bottomCorner;
+      }
+
+      Goal.prototype.draw = function() {
+        let pos = worldToScreen(this.pos);
+        ctx.fillStyle = this.fillStyle;
+        ctx.strokeStyle = this.strokeStyle;
+        ctx.fillRect(pos.x, pos.y, this.width, this.height);
+        ctx.stroke();
+      }
+
+      goals = [
+        /* Red Goal */
+        /* Blue Goal */
+        new Goal({
+          pos: new Vec2(arena.left - goalWidth, arena.height * 0.5 - goalHeight/2),
+          width: goalWidth,
+          height: goalHeight,
+          fillStyle: "rgba(0, 30, 200, 0.8)",
+          strokeStyle: "blue",
+          lineWidth: "3",
+          topCorner: new Vec2(arena.left, arena.height * 0.5 - goalHeight/2),
+          bottomCorner: new Vec2(arena.left, arena.height * 0.5 + goalHeight/2),
+        }),
+        new Goal({
+          pos: new Vec2(arena.right, arena.height * 0.5 - goalHeight/2),
+          width: goalWidth,
+          height: goalHeight,
+          fillStyle: "rgba(200, 30, 0, 0.8)",
+          strokeStyle: "red",
+          lineWidth: "3",
+          topCorner: new Vec2(arena.right, arena.height * 0.5 - goalHeight/2),
+          bottomCorner: new Vec2(arena.right, arena.height * 0.5 + goalHeight/2),
+        })
+      ]
     }
-    var arena = {
-      left: arenaGap,
-      right: canvas.width - arenaGap,
-      top: 0,
-      bottom: canvas.height
-    }
-
-    arena.width = arena.right - arena.left;
-    arena.height = arena.bottom - arena.top;
-    arena.center = new Vec2(arena.left + arena.width/2, arena.top + arena.height/2);
-
-    const goalHeight = arena.height * 0.2;
-    const goalWidth = arenaGap;
-
-    function Goal(args) {
-      this.pos = args.pos;
-      this.width = args.width;
-      this.height = args.height;
-      this.fillStyle = args.fillStyle;
-      this.topCorner = args.topCorner;
-      this.bottomCorner = args.bottomCorner;
-    }
-
-    Goal.prototype.draw = function() {
-      let pos = worldToScreen(this.pos);
-      ctx.fillStyle = this.fillStyle;
-      ctx.strokeStyle = this.strokeStyle;
-      ctx.fillRect(pos.x, pos.y, this.width, this.height);
-      ctx.stroke();
-    }
-
-    var goals = [
-      /* Red Goal */
-      /* Blue Goal */
-      new Goal({
-        pos: new Vec2(arena.left - goalWidth, arena.height * 0.5 - goalHeight/2),
-        width: goalWidth,
-        height: goalHeight,
-        fillStyle: "rgba(0, 30, 200, 0.8)",
-        strokeStyle: "blue",
-        lineWidth: "3",
-        topCorner: new Vec2(arena.left, arena.height * 0.5 - goalHeight/2),
-        bottomCorner: new Vec2(arena.left, arena.height * 0.5 + goalHeight/2),
-      }),
-      new Goal({
-        pos: new Vec2(arena.right, arena.height * 0.5 - goalHeight/2),
-        width: goalWidth,
-        height: goalHeight,
-        fillStyle: "rgba(200, 30, 0, 0.8)",
-        strokeStyle: "red",
-        lineWidth: "3",
-        topCorner: new Vec2(arena.right, arena.height * 0.5 - goalHeight/2),
-        bottomCorner: new Vec2(arena.right, arena.height * 0.5 + goalHeight/2),
-      })
-    ]
+    initializeGame();
 
     var canStart = false;
     var timer = 60;
@@ -590,6 +587,19 @@
     // Object position calculations end
 
     // Draw functions start
+
+    function drawGrass(){
+      bgCanvas.width = canvas.width;
+      bgCanvas.height = canvas.height;
+      var ctx=bgCanvas.getContext("2d");
+      var w = imgGrass.width;
+      var h = imgGrass.height;
+      for (var x=0;x<Math.ceil(bgCanvas.width/w);x++) {
+        for (var y=0;y<Math.ceil(bgCanvas.height/h);y++) {
+          ctx.drawImage(imgGrass, x*w, y*h, w, h);
+        }
+      }
+    }
 
     function drawArena() {
       let pos = worldToScreen(new Vec2(arena.left, arena.top));
