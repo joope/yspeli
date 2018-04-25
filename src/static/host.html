@@ -107,6 +107,7 @@
       accbias: 0.0,
       playerSize: 40,
       ballSize: 50,
+      stiffness: 0.9,
     }
 
     const maxV = 0.9;
@@ -349,27 +350,19 @@
         velocityDir.normalize();
         var velocityMag = player.vel.magnitude();
 
-        var samedir = dir.dot(velocityDir);
-
-        weight = Math.max(0.0, samedir - rules.accbias);
-
-        // Drive velocity points towards the new direction controlled by player
-        // but also keeps the whole accumulated speed.
-
         var driveVelocity = new Vec2(0,0);
-        Vec2.multiply_inplace(dir, Math.max(velocityMag, player.v), driveVelocity);
+        Vec2.multiply_inplace(dir, player.v * rules.acceleration, driveVelocity);
 
-        player.vel = Vec2.mix(player.vel, driveVelocity, weight);
+        var V_a = Vec2.multiply(dir, Vec2.dot(dir, player.vel));
+        var V_b = Vec2.subtract(player.vel, V_a);
 
+        player.name = "" + Vec2.dot(player.vel, dir).toFixed(2);
+
+        Vec2.add_inplace(
+            //Vec2.multiply(dir, V_a.magnitude()),
+            V_a,
+            Vec2.multiply(V_b, rules.stiffness), player.vel);
         Vec2.add_inplace(player.vel, Vec2.multiply(dir, player.v*rules.acceleration), player.vel);
-
-        //driveVelocity.copyTo(player.vel);
-
-        //Vec2.add_inplace(player.vel, driveVelocity, player.vel);
-        //Vec2.add_inplace(player.vel, driveVelocity, player.vel);
-
-        //player.vel.x = player.vel.x + (Math.cos(player.dir) * player.v * weight);
-        //player.vel.y = player.vel.y + (Math.sin(player.dir) * player.v * weight);
 
         Vec2.add_inplace(player.pos, Vec2.multiply(player.vel, dt), player.pos);
         const newpos = player.pos.clone();
@@ -401,7 +394,6 @@
       var n2 = new Vec2(0, 0);
       var temp = new Vec2(0, 0);
 
-      // TODO handle each pair only once?
       for (i = 0; i < keys.length; i++) {
       for (j = i; j < keys.length; j++) {
         if (i == j) continue;
