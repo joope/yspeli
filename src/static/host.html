@@ -99,15 +99,19 @@
     // Game settings -->
     let isGoal = false;
 
-    const friction = 0.98;
-    const turnRate = 0.2;
+    var rules = {
+      friction: 0.995,
+      ball_friction: 0.99,
+      simulationSpeed: 1.0,
+      acceleration: 0.22,
+      accbias: 0.0,
+      playerSize: 40,
+      ballSize: 50,
+      stiffness: 0.98,
+    }
+
     const maxV = 0.9;
     const physicsTicksPerFrame = 4;
-    const simulationSpeed = 1.0;
-
-    const playerSize = 40;
-    const ballSize = 50;
-    const borderPadding = 20;
 
     let cameraPos = new Vec2(0, 0);
 
@@ -157,18 +161,13 @@
     const goalHeight = arena.height * 0.2;
     const goalWidth = arenaGap;
 
-    let left_pad = arena.left + ballSize;
-    let right_pad = arena.right - ballSize;
-    let top_pad = arena.top + ballSize;
-    let bottom_pad = arena.bottom - ballSize;
-
     function Goal(args) {
       this.pos = args.pos;
       this.width = args.width;
       this.height = args.height;
       this.fillStyle = args.fillStyle;
-      this.topCorner = new Vec2(this.pos.x + this.width, this.pos.y)
-      this.bottomCorner = new Vec2(this.pos.x + this.width, this.pos.y + this.height)
+      this.topCorner = args.topCorner;
+      this.bottomCorner = args.bottomCorner;
     }
 
     Goal.prototype.draw = function() {
@@ -188,7 +187,9 @@
         height: goalHeight,
         fillStyle: "rgba(0, 30, 200, 0.8)",
         strokeStyle: "blue",
-        lineWidth: "3"
+        lineWidth: "3",
+        topCorner: new Vec2(arena.left, arena.height * 0.5 - goalHeight/2),
+        bottomCorner: new Vec2(arena.left, arena.height * 0.5 + goalHeight/2),
       }),
       new Goal({
         pos: new Vec2(arena.right, arena.height * 0.5 - goalHeight/2),
@@ -196,7 +197,9 @@
         height: goalHeight,
         fillStyle: "rgba(200, 30, 0, 0.8)",
         strokeStyle: "red",
-        lineWidth: "3"
+        lineWidth: "3",
+        topCorner: new Vec2(arena.right, arena.height * 0.5 - goalHeight/2),
+        bottomCorner: new Vec2(arena.right, arena.height * 0.5 + goalHeight/2),
       })
     ]
 
@@ -319,7 +322,7 @@
       }
 
       for (let i=0;i<physicsTicksPerFrame;i++) {
-          dt = simulationSpeed / physicsTicksPerFrame;
+          dt = rules.simulationSpeed / physicsTicksPerFrame;
 
           // Player's can't move during the face off
           if (gameState != STATE_FACE_OFF) {
@@ -354,43 +357,25 @@
         velocityDir.normalize();
         var velocityMag = player.vel.magnitude();
 
-        var samedir = dir.dot(velocityDir);
-
-        /*
-        var weight = Vec2.dot(dir, player.vel) / mag;
-        if (mag < 0.01) {
-          weight = 0.0;
-        }
-        weight = Math.max(Math.cos(Math.min(Math.PI, player.vel.magnitude() / 2.0)), weight);
-        console.log("weight", weight);
-        weight *= 0.1;
-        */
-
-        weight = Math.max(0.0, samedir);
-
-        // Drive velocity points towards the new direction controlled by player
-        // but also keeps the whole accumulated speed.
-
         var driveVelocity = new Vec2(0,0);
-        Vec2.multiply_inplace(dir, Math.max(velocityMag, player.v), driveVelocity);
+        Vec2.multiply_inplace(dir, player.v * rules.acceleration, driveVelocity);
 
-        player.vel = Vec2.mix(player.vel, driveVelocity, weight);
+        var V_a = Vec2.multiply(dir, Vec2.dot(dir, player.vel));
+        var V_b = Vec2.subtract(player.vel, V_a);
 
-        Vec2.add_inplace(player.vel, Vec2.multiply(dir, player.v*0.22), player.vel);
+        player.name = "" + Vec2.dot(player.vel, dir).toFixed(2);
 
-        //driveVelocity.copyTo(player.vel);
-
-        //Vec2.add_inplace(player.vel, driveVelocity, player.vel);
-        //Vec2.add_inplace(player.vel, driveVelocity, player.vel);
-
-        //player.vel.x = player.vel.x + (Math.cos(player.dir) * player.v * weight);
-        //player.vel.y = player.vel.y + (Math.sin(player.dir) * player.v * weight);
+        Vec2.add_inplace(
+            //Vec2.multiply(dir, V_a.magnitude()),
+            V_a,
+            Vec2.multiply(V_b, rules.stiffness), player.vel);
+        Vec2.add_inplace(player.vel, Vec2.multiply(dir, player.v*rules.acceleration), player.vel);
 
         Vec2.add_inplace(player.pos, Vec2.multiply(player.vel, dt), player.pos);
         const newpos = player.pos.clone();
-        newpos.x = Math.max(arena.left + playerSize, newpos.x);
+        newpos.x = Math.max(arena.left + rules.playerSize, newpos.x);
         newpos.y = Math.max(arena.top, newpos.y);
-        newpos.x = Math.min(arena.right - playerSize, newpos.x);
+        newpos.x = Math.min(arena.right - rules.playerSize, newpos.x);
         newpos.y = Math.min(arena.bottom, newpos.y);
 
         // If position changed above we know we hit a border.
@@ -405,7 +390,7 @@
 
         newpos.copyTo(player.pos); // Actually update player position
 
-        Vec2.multiply_inplace(player.vel, 0.995, player.vel);
+        Vec2.multiply_inplace(player.vel, rules.friction, player.vel);
         player.v *= 0.9;
 
       });
@@ -416,7 +401,6 @@
       var n2 = new Vec2(0, 0);
       var temp = new Vec2(0, 0);
 
-      // TODO handle each pair only once?
       for (i = 0; i < keys.length; i++) {
       for (j = i; j < keys.length; j++) {
         if (i == j) continue;
@@ -425,7 +409,7 @@
 
         Vec2.subtract_inplace(pl1.pos, pl2.pos, diff);
         var dist = diff.magnitude();
-        var threshold = playerSize*2-5;
+        var threshold = rules.playerSize*2-5;
         if (dist > threshold) {
           continue;
         }
@@ -481,12 +465,17 @@
     }
 
     function updateBallPosition(dt) {
+      let left_pad = arena.left + rules.ballSize;
+      let right_pad = arena.right - rules.ballSize;
+      let top_pad = arena.top + rules.ballSize;
+      let bottom_pad = arena.bottom - rules.ballSize;
+
       forEachPlayer(function(player, i, playerID){
         var delta = Vec2.subtract(ball.pos, player.pos);
         var normal = new Vec2(delta.x, delta.y); // TODO inplace?
         normal.normalize();
         var distance = delta.magnitude();
-        var threshold = playerSize + ballSize;
+        var threshold = rules.playerSize + rules.ballSize;
 
         if ((distance <= threshold) && ball.z < 2) {
           var direction = Math.atan2(delta.x, delta.y);
@@ -499,7 +488,7 @@
           socket.emit('crash', playerID);
         }
       })
-      ball.vel = Vec2.multiply(ball.vel, 0.99);
+      ball.vel = Vec2.multiply(ball.vel, rules.ball_friction);
       ball.vz = Math.max(ball.vz - 0.05, -5);
       ball.pos = Vec2.add(ball.pos, ball.vel);
       ball.z = Math.max(ball.z + dt * ball.vz, 0);
@@ -510,38 +499,41 @@
       if (ballInCenterArea() && ball.pos.x > arena.left && ball.pos.x < arena.right){
         ball.color = 'blue';
 
-        const d1 = goals[0].topCorner.subtract(ball.pos).magnitude();
-        const d2 = goals[0].bottomCorner.subtract(ball.pos).magnitude();
-        const d3 = goals[1].topCorner.subtract(ball.pos).magnitude();
-        const d4 = goals[1].bottomCorner.subtract(ball.pos).magnitude();
+        const d1 = Vec2.subtract(goals[0].topCorner,ball.pos).magnitude();
+        const d2 = Vec2.subtract(goals[0].bottomCorner,ball.pos).magnitude();
+        const d3 = Vec2.subtract(goals[1].topCorner,ball.pos).magnitude();
+        const d4 = Vec2.subtract(goals[1].bottomCorner,ball.pos).magnitude();
 
-        // if (ball.pos.x + ballSize > topCorner.x && distance <= ballSize) {
-        //   ball.color = 'yellow';
-        // }
+        // TODO: add the real distance to ball position, not normal
 
         // 2(V * N) N + V
-        if (d1 <= ballSize) {
+        if (d1 <= rules.ballSize) {
           ball.color = 'yellow';
           var normal = new Vec2(Math.sqrt(2)/2, Math.sqrt(2)/2);
-          ball.vel = new Vec2(normal.multiply(normal.dot(ball.vel))).multiply(-2).add(ball.vel);
+          ball.vel = normal.multiply(normal.dot(ball.vel)).multiply(-2).add(ball.vel);
+          ball.pos.add(normal);
         }
-        if (d2 <= ballSize) {
+        if (d2 <= rules.ballSize) {
           ball.color = 'yellow';
           var normal = new Vec2(Math.sqrt(2)/2, -Math.sqrt(2)/2);
-          ball.vel = new Vec2(normal.multiply(normal.dot(ball.vel))).multiply(-2).add(ball.vel);
+          ball.vel = normal.multiply(normal.dot(ball.vel)).multiply(-2).add(ball.vel);
+          ball.pos.add(normal);
         }
-        if (d3 <= ballSize) {
+        if (d3 <= rules.ballSize) {
           ball.color = 'yellow';
           var normal = new Vec2(-Math.sqrt(2)/2, Math.sqrt(2)/2);
-          ball.vel = new Vec2(normal.multiply(normal.dot(ball.vel))).multiply(-2).add(ball.vel);
+          ball.vel = normal.multiply(normal.dot(ball.vel)).multiply(-2).add(ball.vel);
+          ball.pos.add(normal);
         }
-        if (d4 <= ballSize) {
+        if (d4 <= rules.ballSize) {
           ball.color = 'yellow';
           var normal = new Vec2(-Math.sqrt(2)/2, -Math.sqrt(2)/2);
-          ball.vel = new Vec2(normal.multiply(normal.dot(ball.vel))).multiply(-2).add(ball.vel);
+          ball.vel = normal.multiply(normal.dot(ball.vel)).multiply(-2).add(ball.vel);
+          ball.pos.add(normal);
         }
         
         
+        //console.log(ball.vel)
       } else {
         ball.color = '#c2c2c2';
       }
@@ -569,13 +561,14 @@
         ball.pos.x = Math.max(left_pad, ball.pos.x);
         ball.pos.x = Math.min(right_pad, ball.pos.x);
       }
+
       if (ball.pos.y < top_pad || ball.pos.y > bottom_pad) ball.vel.y = -ball.vel.y;
       ball.pos.y = Math.max(top_pad, ball.pos.y);
       ball.pos.y = Math.min(bottom_pad, ball.pos.y);
 
       // DEBUG: ball with mouse
-      ball.pos.x = mouse.x;
-      ball.pos.y = mouse.y;
+      // ball.pos.x = mouse.x;
+      // ball.pos.y = mouse.y;
     }
 
     // Object position calculations end
@@ -615,13 +608,13 @@
 
         ctx.beginPath();
         ctx.fillStyle = ['lightblue', 'lightpink'][player.team];
-        // ctx.arc(pos.x, pos.y, playerSize, 0, 2 * Math.PI);
+        // ctx.arc(pos.x, pos.y, rules.playerSize, 0, 2 * Math.PI);
         // ctx.fill();
         // ctx.moveTo(pos.x, pos.y);
-        // ctx.lineTo(pos.x + Math.cos(player.dir) * playerSize, pos.y + Math.sin(player.dir) * playerSize);
+        // ctx.lineTo(pos.x + Math.cos(player.dir) * rules.playerSize, pos.y + Math.sin(player.dir) * rules.playerSize);
         // ctx.stroke();
         ctx.font = "24px Arial"
-        ctx.fillText(player.name, player.pos.x - ctx.measureText(player.name).width / 2, player.pos.y + playerSize * 2);
+        ctx.fillText(player.name, player.pos.x - ctx.measureText(player.name).width / 2, player.pos.y + rules.playerSize * 2);
         ctx.font = "72px Arial";
         ctx.save();
         ctx.translate(player.pos.x, player.pos.y);
@@ -637,7 +630,7 @@
       let pos = worldToScreen(ball.pos);
       ctx.beginPath();
       ctx.strokeStyle = 'black';
-      ctx.arc(pos.x, pos.y, ballSize + ball.z * 3, 0, 2 * Math.PI);
+      ctx.arc(pos.x, pos.y, rules.ballSize + ball.z * 3, 0, 2 * Math.PI);
       ctx.fillStyle = ball.color;
       ctx.fill();
       ctx.stroke();
@@ -774,11 +767,11 @@
     }
 
     function ballInBlueGoal() {
-      return (isGoal && ball.pos.x <= arena.left) || ball.pos.y >= goals[0].pos.y && ball.pos.y <= goals[0].pos.y + goals[0].height && ball.pos.x <= arena.left;
+      return (isGoal && ball.pos.x <= arena.left - rules.ballSize) || ball.pos.y >= goals[0].pos.y && ball.pos.y <= goals[0].pos.y + goals[0].height && ball.pos.x <= arena.left - rules.ballSize;
     }
 
     function ballInRedGoal() {
-      return (isGoal && ball.pos.x >= arena.right) || ball.pos.y >= goals[1].pos.y && ball.pos.y <= goals[1].pos.y + goals[1].height && ball.pos.x >= arena.right
+      return (isGoal && ball.pos.x >= arena.right + rules.ballSize) || ball.pos.y >= goals[1].pos.y && ball.pos.y <= goals[1].pos.y + goals[1].height && ball.pos.x >= arena.right + rules.ballSize;
     }
 
     // Helper functions end
