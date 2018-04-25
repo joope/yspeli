@@ -108,7 +108,7 @@
       playerSize: 40,
       ballSize: 50,
       stiffness: 0.98,
-      turnSpeed: 0.05
+      turnSpeed: 0.03
     }
 
     const maxV = 0.9;
@@ -369,8 +369,6 @@
 
         var V_a = Vec2.multiply(dir, Vec2.dot(dir, player.vel));
         var V_b = Vec2.subtract(player.vel, V_a);
-
-        player.name = "" + Vec2.dot(player.vel, dir).toFixed(2);
 
         Vec2.add_inplace(
             //Vec2.multiply(dir, V_a.magnitude()),
