@@ -62,6 +62,7 @@
     <div style="display:none;">
       <img id="car_red" src="/redcar.svg" width="30" height="70">
       <img id="car_blue" src="/bluecar.svg" width="30" height="70">
+      <img id="ball" src="/ball.png">
     </div>
   </body>
   <script>
@@ -83,6 +84,7 @@
     var ctx=canvas.getContext("2d");
     var car_red = document.getElementById('car_red');
     var car_blue = document.getElementById('car_blue');
+    var imgBall = document.getElementById('ball');
 
     var flashTimer = null;
 
@@ -146,6 +148,7 @@
       vel: new Vec2(0, 0),
       vz: 0.0,
       az: 0.0,
+      angle: 0.0,
       color: '#c2c2c2'
     }
     var arena = {
@@ -500,6 +503,7 @@
       ball.vz = Math.max(ball.vz - 0.05, -5);
       ball.pos = Vec2.add(ball.pos, ball.vel);
       ball.z = Math.max(ball.z + dt * ball.vz, 0);
+      ball.angle = 0.5*(ball.angle - ball.vel.x) % (2.0*Math.PI);
 
       if (ball.z <= 0) ball.vz = -ball.vz * 0.6;
 
@@ -627,13 +631,23 @@
 
     function drawBall() {
       let pos = worldToScreen(ball.pos);
+      var size = rules.ballSize + ball.z * 5;
+      ctx.save();
       ctx.beginPath();
       ctx.strokeStyle = 'black';
-      ctx.arc(pos.x, pos.y, rules.ballSize + ball.z * 3, 0, 2 * Math.PI);
+      ctx.arc(pos.x, pos.y, size, 0, 2 * Math.PI);
       ctx.fillStyle = ball.color;
       ctx.fill();
       ctx.stroke();
       ctx.closePath();
+      ctx.restore();
+
+      ctx.save();
+      ctx.translate(pos.x, pos.y);
+      ctx.rotate(ball.angle);
+      size += 4;
+      ctx.drawImage(imgBall, -size, -size, size*2, size*2);
+      ctx.restore();
     }
 
     function drawGoals() {
