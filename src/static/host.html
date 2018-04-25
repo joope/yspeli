@@ -132,7 +132,8 @@
       playerSize: 40,
       ballSize: 50,
       stiffness: 0.98,
-      turnSpeed: 0.03
+      turnSpeed: 0.03,
+      skidmarkLimit: 0.05
     }
 
     const maxV = 0.9;
@@ -430,6 +431,8 @@
         var dirDiff = shortAngleDist(player.dir, player.targetDir);
         player.dir = player.dir + Math.sign(dirDiff) * Math.min(rules.turnSpeed, Math.abs(dirDiff));
 
+        player.skidding = Math.min(1.0, rules.skidmarkLimit * (V_b.dot(V_b) / V_a.magnitude()));
+
       });
 
       var keys = Object.keys(players);
@@ -617,29 +620,31 @@ function updateSkidmarks() {
 
     var ctx=bgCanvas.getContext("2d");
     forEachPlayer(function(player){
-        let pos = worldToScreen(player.pos);
-        let oldPos = worldToScreen(player.oldPos);
-
-        ctx.save();
-        ctx.beginPath();
-        ctx.lineWidth = 7;
-        ctx.fillStyle = 'grey';
-        ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
-        for (var x of [-1, 1]) {
-        for (var y of [-1, 1]) {
-            var ofs = new Vec2(y*40, x*30);
-            var pos2 = rotate(ofs, player.dir);
-            var oldPos2 = rotate(ofs, player.oldDir);
+        if (player.skidding > 0.5) {
+            let pos = worldToScreen(player.pos);
+            let oldPos = worldToScreen(player.oldPos);
 
             ctx.save();
-            ctx.moveTo(oldPos.x + oldPos2.x, oldPos.y + oldPos2.y);
-            ctx.lineTo(pos.x + pos2.x, pos.y + pos2.y);
-            ctx.stroke();
+            ctx.beginPath();
+            ctx.lineWidth = 7;
+            ctx.fillStyle = 'grey';
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
+            for (var x of [-1, 1]) {
+                for (var y of [-1, 1]) {
+                    var ofs = new Vec2(y*40, x*30);
+                    var pos2 = rotate(ofs, player.dir);
+                    var oldPos2 = rotate(ofs, player.oldDir);
+
+                    ctx.save();
+                    ctx.moveTo(oldPos.x + oldPos2.x, oldPos.y + oldPos2.y);
+                    ctx.lineTo(pos.x + pos2.x, pos.y + pos2.y);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+            }
+            ctx.closePath();
             ctx.restore();
         }
-        }
-        ctx.closePath();
-        ctx.restore();
     });
 
     }
@@ -796,6 +801,7 @@ function updateSkidmarks() {
           dir: 0.0,
           oldDir: 0.0,
           targetDir: 0.0,
+          skidding: 0.0,
           team: 0,
           name: data.name,
           emoji: data.emoji
@@ -843,6 +849,10 @@ function updateSkidmarks() {
           : new Vec2(arena.center.x * 1.7, y)
         player.v = 0;
         player.dir = player.team === 0 ? 0 : Math.PI;
+        player.vel.x = 0;
+        player.vel.y = 0;
+        player.pos.copyTo(player.oldPos);
+        player.skidding = 0;
       });
     }
 
