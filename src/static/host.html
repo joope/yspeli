@@ -81,7 +81,7 @@
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
       initializeGame();
-      drawGrass();
+      redrawBgCanvas();
     };
 
     var ctx=canvas.getContext("2d");
@@ -92,8 +92,23 @@
 
     // Render the background image
     var bgCanvas = document.createElement("canvas");
-
-    imgGrass.addEventListener('load', drawGrass);
+    function redrawBgCanvas() {
+        bgCanvas.width = canvas.width;
+        bgCanvas.height = canvas.height;
+        var ctx=bgCanvas.getContext("2d");
+        var w = imgGrass.width;
+        var h = imgGrass.height;
+        ctx.save();
+        ctx.fillStyle = 'rgba(0,0,0,0)'; // Fill with transparency first.
+        ctx.fillRect(0, 0, w, h);
+        ctx.restore();
+        for (var x=0;x<Math.ceil(bgCanvas.width/w);x++) {
+        for (var y=0;y<Math.ceil(bgCanvas.height/h);y++) {
+            ctx.drawImage(imgGrass, x*w, y*h, w, h);
+        }
+        }
+    }
+    imgGrass.addEventListener('load', redrawBgCanvas()); // TODO is there a nice way to make sure image is loaded?
 
     var flashTimer = null;
 
@@ -118,8 +133,10 @@
       accbias: 0.0,
       playerSize: 40,
       ballSize: 50,
-      stiffness: 0.98,
-      turnSpeed: 0.04
+      stiffness: 0.98,    // car sideways motion damping
+      turnSpeed: 0.04,    // max radians per physics step
+      skidmarkLimit: 0.05,// higher limit means more tire tracks left
+      skidSpeedBonus: 3.0
     }
 
     const maxV = 0.9;
@@ -311,6 +328,7 @@
           console.log("Initializing game");
           startButton.style.visibility = "visible";
           initGamePositions();
+          redrawBgCanvas();
           score.red = 0;
           score.blue = 0;
         } else if (gameState == STATE_WARMUP) {
@@ -339,6 +357,12 @@
         }
       }
 
+      // Save old positions before physics update
+      forEachPlayer(function(player){
+          player.pos.copyTo(player.oldPos);
+          player.oldDir = player.dir;
+      });
+
       for (let i=0;i<physicsTicksPerFrame;i++) {
           dt = rules.simulationSpeed / physicsTicksPerFrame;
 
@@ -355,6 +379,7 @@
         updatePlayerTeams(players);
       }
 
+      updateSkidmarks();
       drawArena();
       drawScoreboard();
       drawPlayers();
@@ -375,7 +400,6 @@
     function updatePlayerPositions(dt) {
       forEachPlayer(function(player){
         // TODO Try to reuse vector variables here in order not to generate too much garbage.
-
         var dir = new Vec2(Math.cos(player.dir), Math.sin(player.dir));
         var velocityDir = player.vel.clone();
         velocityDir.normalize();
@@ -385,6 +409,10 @@
 
         var V_a = Vec2.multiply(dir, Vec2.dot(dir, player.vel));
         var V_b = Vec2.subtract(player.vel, V_a);
+
+        // This will be high when car is skidding sideways.
+        var sidewaysMovement = (V_b.dot(V_b) / (V_a.magnitude() + 1.0));
+        var speedBonus = rules.skidSpeedBonus * Math.max(0.0, Math.sqrt(sidewaysMovement) - 3.0);
 
         Vec2.add_inplace(
             //Vec2.multiply(dir, V_a.magnitude()),
@@ -414,6 +442,8 @@
 
         var dirDiff = shortAngleDist(player.dir, player.targetDir);
         player.dir = player.dir + Math.sign(dirDiff) * Math.min(rules.turnSpeed, Math.abs(dirDiff));
+
+        player.skidding = Math.min(1.0, rules.skidmarkLimit * sidewaysMovement);
 
       });
 
@@ -586,19 +616,49 @@
 
     // Object position calculations end
 
+
     // Draw functions start
 
-    function drawGrass(){
-      bgCanvas.width = canvas.width;
-      bgCanvas.height = canvas.height;
-      var ctx=bgCanvas.getContext("2d");
-      var w = imgGrass.width;
-      var h = imgGrass.height;
-      for (var x=0;x<Math.ceil(bgCanvas.width/w);x++) {
-        for (var y=0;y<Math.ceil(bgCanvas.height/h);y++) {
-          ctx.drawImage(imgGrass, x*w, y*h, w, h);
+function updateSkidmarks() {
+    //var offscreen_data = offscreen_context.getImageData(x, y, width, height);
+
+    // Rotates Vec2 v clockwise (since y-axis points down) by the given angle.
+    var rotate = function(v, angle) {
+        var o = new Vec2();
+        o.x = Math.cos(angle)*v.x - Math.sin(angle) * v.y;
+        o.y = Math.sin(angle)*v.x + Math.cos(angle) * v.y;
+        return o;
+    }
+
+    var ctx=bgCanvas.getContext("2d");
+    forEachPlayer(function(player){
+        if (player.skidding > 0.5) {
+            let pos = worldToScreen(player.pos);
+            let oldPos = worldToScreen(player.oldPos);
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.lineWidth = 7;
+            ctx.fillStyle = 'grey';
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
+            for (var x of [-1, 1]) {
+                for (var y of [-1, 1]) {
+                    var ofs = new Vec2(y*40, x*30);
+                    var pos2 = rotate(ofs, player.dir);
+                    var oldPos2 = rotate(ofs, player.oldDir);
+
+                    ctx.save();
+                    ctx.moveTo(oldPos.x + oldPos2.x, oldPos.y + oldPos2.y);
+                    ctx.lineTo(pos.x + pos2.x, pos.y + pos2.y);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+            }
+            ctx.closePath();
+            ctx.restore();
         }
-      }
+    });
+
     }
 
     function drawArena() {
@@ -611,11 +671,6 @@
       ctx.fillStyle = 'rgb(120, 205, 50)';
       ctx.fillRect(pos.x, pos.y, arena.width, arena.height);
       ctx.lineWidth = 2;
-
-      ctx.drawImage(bgCanvas, 0, 0);
-      ctx.fillStyle = 'rgb(100, 100, 100)';
-      ctx.fillRect(0,0,goals[0].width, canvas.height);
-      ctx.fillRect(canvas.width - goals[0].width,0, goals[0].width, canvas.height);
 
       // Center line
       ctx.beginPath();
@@ -632,6 +687,11 @@
       ctx.closePath();
       ctx.stroke();
       ctx.restore();
+
+      ctx.drawImage(bgCanvas, 0, 0);
+      ctx.fillStyle = 'rgb(100, 100, 100)';
+      ctx.fillRect(0,0,goals[0].width, canvas.height);
+      ctx.fillRect(canvas.width - goals[0].width,0, goals[0].width, canvas.height);
     }
 
     function drawPlayers() {
@@ -744,12 +804,16 @@
     function registerPlayer(data) {
       console.log(data);
       if (!players[data.playerID]){
+        var pos = getRandomCoordinates();
         players[data.playerID] = {
-          pos: getRandomCoordinates(),
+          pos: pos,
+          oldPos: pos.clone(),
           v: 0,
           vel: new Vec2(0, 0),
           dir: 0.0,
+          oldDir: 0.0,
           targetDir: 0.0,
+          skidding: 0.0,
           team: 0,
           name: data.name,
           emoji: data.emoji
@@ -797,6 +861,10 @@
           : new Vec2(arena.center.x * 1.7, y)
         player.v = 0;
         player.dir = player.team === 0 ? 0 : Math.PI;
+        player.vel.x = 0;
+        player.vel.y = 0;
+        player.pos.copyTo(player.oldPos);
+        player.skidding = 0;
       });
     }
 
