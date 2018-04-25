@@ -660,11 +660,6 @@ function updateSkidmarks() {
       ctx.fillRect(pos.x, pos.y, arena.width, arena.height);
       ctx.lineWidth = 2;
 
-      ctx.drawImage(bgCanvas, 0, 0);
-      ctx.fillStyle = 'rgb(100, 100, 100)';
-      ctx.fillRect(0,0,goals[0].width, canvas.height);
-      ctx.fillRect(canvas.width - goals[0].width,0, goals[0].width, canvas.height);
-
       // Center line
       ctx.beginPath();
       ctx.lineWidth=8;
@@ -680,6 +675,11 @@ function updateSkidmarks() {
       ctx.closePath();
       ctx.stroke();
       ctx.restore();
+
+      ctx.drawImage(bgCanvas, 0, 0);
+      ctx.fillStyle = 'rgb(100, 100, 100)';
+      ctx.fillRect(0,0,goals[0].width, canvas.height);
+      ctx.fillRect(canvas.width - goals[0].width,0, goals[0].width, canvas.height);
     }
 
     function drawPlayers() {
