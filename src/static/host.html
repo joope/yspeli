@@ -432,6 +432,7 @@
 
         player.vel.multiply(rules.friction);
         player.v *= 0.9;
+        player.bump *= 0.9;
 
         var dirDiff = shortAngleDist(player.dir, player.targetDir);
         player.dir = player.dir + Math.sign(dirDiff) * Math.min(rules.turnSpeed, Math.abs(dirDiff));
@@ -528,6 +529,7 @@
           ball.vel.y = (Math.cos(direction) + slowdown * player.vel.y);
           ball.vz = ball.vz + 0.12*player.vel.magnitude();
           player.pos.subtract(Vec2.multiply(normal, threshold - distance));
+          player.bump = player.vel.magnitude()/30.0;
           player.vel.multiply(-0.2);
           socket.emit('crash', playerID);
         }
@@ -704,7 +706,9 @@ function updateSkidmarks() {
         ctx.save();
         ctx.translate(player.pos.x, player.pos.y);
         ctx.rotate(player.dir + Math.PI/2);
-        ctx.drawImage([car_blue, car_red][player.team], -40, -50, 80, 100);
+        var bumpx = 30 * player.bump;
+        var bumpy = 40 * player.bump;
+        ctx.drawImage([car_blue, car_red][player.team], -40 - bumpx/2, -50 + bumpy/2, 80 + bumpx, 100 - bumpy);
         ctx.fillText(player.emoji, -ctx.measureText(player.emoji).width / 2, 32);
         ctx.closePath();
         ctx.restore();
@@ -809,7 +813,8 @@ function updateSkidmarks() {
           skidding: 0.0,
           team: 0,
           name: data.name,
-          emoji: data.emoji
+          emoji: data.emoji,
+          bump: 0
         }
       } else {
         players[data.playerID].name = data.name;
