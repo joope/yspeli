@@ -131,9 +131,10 @@
       accbias: 0.0,
       playerSize: 40,
       ballSize: 50,
-      stiffness: 0.98,
-      turnSpeed: 0.03,
-      skidmarkLimit: 0.05
+      stiffness: 0.98,    // car sideways motion damping
+      turnSpeed: 0.03,    // max radians per physics step
+      skidmarkLimit: 0.05,// higher limit means more tire tracks left
+      skidSpeedBonus: 3.0
     }
 
     const maxV = 0.9;
@@ -402,6 +403,10 @@
         var V_a = Vec2.multiply(dir, Vec2.dot(dir, player.vel));
         var V_b = Vec2.subtract(player.vel, V_a);
 
+        // This will be high when car is skidding sideways.
+        var sidewaysMovement = (V_b.dot(V_b) / (V_a.magnitude() + 1.0));
+        var speedBonus = rules.skidSpeedBonus * Math.max(0.0, Math.sqrt(sidewaysMovement) - 3.0);
+
         Vec2.add_inplace(
             //Vec2.multiply(dir, V_a.magnitude()),
             V_a,
@@ -431,7 +436,7 @@
         var dirDiff = shortAngleDist(player.dir, player.targetDir);
         player.dir = player.dir + Math.sign(dirDiff) * Math.min(rules.turnSpeed, Math.abs(dirDiff));
 
-        player.skidding = Math.min(1.0, rules.skidmarkLimit * (V_b.dot(V_b) / V_a.magnitude()));
+        player.skidding = Math.min(1.0, rules.skidmarkLimit * sidewaysMovement);
 
       });
 
