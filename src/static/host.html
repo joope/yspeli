@@ -108,6 +108,7 @@
       playerSize: 40,
       ballSize: 50,
       stiffness: 0.98,
+      turnSpeed: 0.05
     }
 
     const maxV = 0.9;
@@ -348,6 +349,12 @@
 
     // Object position calculations -->
 
+    function shortAngleDist(a0,a1) {
+        var max = Math.PI*2;
+        var da = (a1 - a0) % max;
+        return 2*da % max - da;
+    }
+
     function updatePlayerPositions(dt) {
       forEachPlayer(function(player){
         // TODO Try to reuse vector variables here in order not to generate too much garbage.
@@ -393,14 +400,8 @@
         Vec2.multiply_inplace(player.vel, rules.friction, player.vel);
         player.v *= 0.9;
 
-        var shortestAngle = function(start,end) {
-          return ((((end - start) % (2*Math.PI)) + 3) % (2*Math.PI)) - Math.PI
-        };
-
-        //var dirDiff = shortestAngle(player.dir, player.targetDir) - player.dir;
-        //console.log(player.dir, player.targetDir, Math.sign(dirDiff), Math.min(0.05, Math.abs(dirDiff)));
-        //player.dir = player.dir + Math.sign(dirDiff) * Math.min(0.05, Math.abs(dirDiff));
-        player.dir = player.targetDir;
+        var dirDiff = shortAngleDist(player.dir, player.targetDir);
+        player.dir = player.dir + Math.sign(dirDiff) * Math.min(rules.turnSpeed, Math.abs(dirDiff));
 
       });
 
@@ -707,6 +708,7 @@
           v: 0,
           vel: new Vec2(0, 0),
           dir: 0.0,
+          targetDir: 0.0,
           team: 0,
           name: data.name,
           emoji: data.emoji
