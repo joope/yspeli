@@ -167,6 +167,8 @@
       this.width = args.width;
       this.height = args.height;
       this.fillStyle = args.fillStyle;
+      this.topCorner = new Vec2(this.pos.x + this.width, this.pos.y)
+      this.bottomCorner = new Vec2(this.pos.x + this.width, this.pos.y + this.height)
     }
 
     Goal.prototype.draw = function() {
@@ -504,6 +506,46 @@
 
       if (ball.z <= 0) ball.vz = -ball.vz * 0.6;
 
+            // FOR DEBUGGING
+      if (ballInCenterArea() && ball.pos.x > arena.left && ball.pos.x < arena.right){
+        ball.color = 'blue';
+
+        const d1 = goals[0].topCorner.subtract(ball.pos).magnitude();
+        const d2 = goals[0].bottomCorner.subtract(ball.pos).magnitude();
+        const d3 = goals[1].topCorner.subtract(ball.pos).magnitude();
+        const d4 = goals[1].bottomCorner.subtract(ball.pos).magnitude();
+
+        // if (ball.pos.x + ballSize > topCorner.x && distance <= ballSize) {
+        //   ball.color = 'yellow';
+        // }
+
+        // 2(V * N) N + V
+        if (d1 <= ballSize) {
+          ball.color = 'yellow';
+          var normal = new Vec2(Math.sqrt(2)/2, Math.sqrt(2)/2);
+          ball.vel = new Vec2(normal.multiply(normal.dot(ball.vel))).multiply(-2).add(ball.vel);
+        }
+        if (d2 <= ballSize) {
+          ball.color = 'yellow';
+          var normal = new Vec2(Math.sqrt(2)/2, -Math.sqrt(2)/2);
+          ball.vel = new Vec2(normal.multiply(normal.dot(ball.vel))).multiply(-2).add(ball.vel);
+        }
+        if (d3 <= ballSize) {
+          ball.color = 'yellow';
+          var normal = new Vec2(-Math.sqrt(2)/2, Math.sqrt(2)/2);
+          ball.vel = new Vec2(normal.multiply(normal.dot(ball.vel))).multiply(-2).add(ball.vel);
+        }
+        if (d4 <= ballSize) {
+          ball.color = 'yellow';
+          var normal = new Vec2(-Math.sqrt(2)/2, -Math.sqrt(2)/2);
+          ball.vel = new Vec2(normal.multiply(normal.dot(ball.vel))).multiply(-2).add(ball.vel);
+        }
+        
+        
+      } else {
+        ball.color = '#c2c2c2';
+      }
+
       // We allow goals only during STATE_GAME if no goals have been made
       if (gameState == STATE_GAME && !isGoal) {
         if (ballInBlueGoal()) {
@@ -518,13 +560,7 @@
         }
       }
       // TODO bounce ball inside the goal
-      // FOR DEBUGGING
-      if (ballInCenterArea()){
-        ball.color = 'blue';
-      } else {
-        ball.color = '#c2c2c2';
-      }
-      // DEBUGGING ENDS
+
       if (!ballInCenterArea() && ball.pos.x < left_pad || !ballInCenterArea() && ball.pos.x > right_pad) {
         ball.vel.x = -ball.vel.x;
         ball.col = 'green';
@@ -538,8 +574,8 @@
       ball.pos.y = Math.min(bottom_pad, ball.pos.y);
 
       // DEBUG: ball with mouse
-      //ball.pos.x = mouse.x;
-      //ball.pos.y = mouse.y;
+      ball.pos.x = mouse.x;
+      ball.pos.y = mouse.y;
     }
 
     // Object position calculations end
