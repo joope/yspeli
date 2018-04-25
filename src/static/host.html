@@ -136,7 +136,8 @@
       stiffness: 0.98,    // car sideways motion damping
       turnSpeed: 0.04,    // max radians per physics step
       skidmarkLimit: 0.05,// higher limit means more tire tracks left
-      skidSpeedBonus: 3.0
+      skidSpeedBonus: 3.0,
+      carSideBounce: 0.8,
     }
 
     const maxV = 0.9;
@@ -423,16 +424,16 @@
         player.pos.add(Vec2.multiply(player.vel, dt));
         const newpos = player.pos.clone();
         newpos.x = Math.max(arena.left + rules.playerSize, newpos.x);
-        newpos.y = Math.max(arena.top, newpos.y);
+        newpos.y = Math.max(arena.top + rules.playerSize, newpos.y);
         newpos.x = Math.min(arena.right - rules.playerSize, newpos.x);
-        newpos.y = Math.min(arena.bottom, newpos.y);
+        newpos.y = Math.min(arena.bottom - rules.playerSize, newpos.y);
 
         // If position changed above we know we hit a border.
         if (newpos.x != player.pos.x) {
-          player.vel.x *= -1.0;
+          player.vel.x *= -1.0 * rules.carSideBounce;
         }
         if (newpos.y != player.pos.y) {
-          player.vel.y *= -1.0;
+          player.vel.y *= -1.0 * rules.carSideBounce;
         }
 
         newpos.copyTo(player.pos); // Actually update player position
@@ -549,7 +550,6 @@
 
       if (ball.z <= 0) ball.vz = -ball.vz * 0.6;
 
-            // FOR DEBUGGING
       if (ballInCenterArea() && ball.pos.x > arena.left && ball.pos.x < arena.right){
 
         const d1 = Vec2.subtract(goals[0].topCorner,ball.pos).magnitude();
