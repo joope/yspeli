@@ -386,6 +386,15 @@
         Vec2.multiply_inplace(player.vel, rules.friction, player.vel);
         player.v *= 0.9;
 
+        var shortestAngle = function(start,end) {
+          return ((((end - start) % (2*Math.PI)) + 3) % (2*Math.PI)) - Math.PI
+        };
+
+        //var dirDiff = shortestAngle(player.dir, player.targetDir) - player.dir;
+        //console.log(player.dir, player.targetDir, Math.sign(dirDiff), Math.min(0.05, Math.abs(dirDiff)));
+        //player.dir = player.dir + Math.sign(dirDiff) * Math.min(0.05, Math.abs(dirDiff));
+        player.dir = player.targetDir;
+
       });
 
       var keys = Object.keys(players);
@@ -654,7 +663,7 @@
           pos: getRandomCoordinates(),
           v: 0,
           vel: new Vec2(0, 0),
-          dir: 0,
+          dir: 0.0,
           team: 0,
           name: data.name,
           emoji: data.emoji
@@ -671,8 +680,7 @@
       var player = players[control_event.id];
       player.v = updateV(player.v, Math.max(0.0, Math.min(1.0, control_event.v)));
 
-      // TODO store target dir but update the smoothed direction later
-      player.dir = control_event.d;
+      player.targetDir = control_event.d;
     }
 
     function updateV(v, control_v) {
