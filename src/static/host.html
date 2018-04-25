@@ -504,8 +504,8 @@
           ball.vel.x = (Math.sin(direction) + slowdown * player.vel.x);
           ball.vel.y = (Math.cos(direction) + slowdown * player.vel.y);
           ball.vz = ball.vz + 0.12*player.vel.magnitude();
-          player.pos.subtract(Vec2.multiply(normal, threshold - distance));
-          player.vel.multiply(-0.2);
+          player.pos.subtract(Vec2.multiply(normal, 1));
+          player.vel.multiply(-0.15);
           socket.emit('crash', playerID);
         }
       })
