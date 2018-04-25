@@ -506,7 +506,6 @@
 
             // FOR DEBUGGING
       if (ballInCenterArea() && ball.pos.x > arena.left && ball.pos.x < arena.right){
-        ball.color = 'blue';
 
         const d1 = Vec2.subtract(goals[0].topCorner,ball.pos).magnitude();
         const d2 = Vec2.subtract(goals[0].bottomCorner,ball.pos).magnitude();
@@ -517,34 +516,26 @@
 
         // 2(V * N) N + V
         if (d1 <= rules.ballSize) {
-          ball.color = 'yellow';
           var normal = new Vec2(Math.sqrt(2)/2, Math.sqrt(2)/2);
           ball.vel = normal.multiply(normal.dot(ball.vel)).multiply(-2).add(ball.vel);
           ball.pos.add(normal);
         }
         if (d2 <= rules.ballSize) {
-          ball.color = 'yellow';
           var normal = new Vec2(Math.sqrt(2)/2, -Math.sqrt(2)/2);
           ball.vel = normal.multiply(normal.dot(ball.vel)).multiply(-2).add(ball.vel);
           ball.pos.add(normal);
         }
         if (d3 <= rules.ballSize) {
-          ball.color = 'yellow';
           var normal = new Vec2(-Math.sqrt(2)/2, Math.sqrt(2)/2);
           ball.vel = normal.multiply(normal.dot(ball.vel)).multiply(-2).add(ball.vel);
           ball.pos.add(normal);
         }
         if (d4 <= rules.ballSize) {
-          ball.color = 'yellow';
           var normal = new Vec2(-Math.sqrt(2)/2, -Math.sqrt(2)/2);
           ball.vel = normal.multiply(normal.dot(ball.vel)).multiply(-2).add(ball.vel);
           ball.pos.add(normal);
         }
-        
-        
-        //console.log(ball.vel)
-      } else {
-        ball.color = '#c2c2c2';
+
       }
 
       // We allow goals only during STATE_GAME if no goals have been made
