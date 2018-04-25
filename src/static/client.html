@@ -39,9 +39,9 @@
   </head>
   <body>
     <form id="config">
-      <input id="server" type="text" placeholder="Server ID" /> <br>
-      <input id="name" type="text" placeholder="Player name"/> <br>
-      <input id="emoji" type="text" placeholder="<emoji>"/> <br>
+      <input id="server" type="text" placeholder="Server ID" maxlength="4"/> <br>
+      <input id="name" type="text" placeholder="Player name" maxlength="10"/> <br>
+      <input id="emoji" type="text" placeholder="<emoji>" maxlength="1"/> <br>
       <button type="submit">Send</button>
     </form>
     <canvas id="touchArea"></canvas>
@@ -63,17 +63,30 @@
     var velocity = 0;
     var direction = 0;
 
-    var controlInterval;
+    var controlInterval, serverId, name, emoji;
 
-    document.getElementById("config").addEventListener("submit", setPlayerInfo,
-false);
-  document.getElementById('server').value = 'AAAA';
+    document.getElementById("config").addEventListener("submit", setPlayerInfo,false);
+    var serverInput = document.getElementById("server");
+    var nameInput = document.getElementById("name");
+    var emojiInput = document.getElementById("emoji");
+
+    serverInput.value = window.localStorage.getItem('serverId') || 'AAAA';
+    nameInput.value = window.localStorage.getItem('playerName') || '';
+    emojiInput.value = window.localStorage.getItem('playerEmoji') || '';
+
+    if (serverInput.value === 'AAAA' && nameInput.value && emojiInput.value) {
+      setPlayerInfo(document.createEvent('event'))
+    }
 
     function setPlayerInfo(event) {
       event.preventDefault();
-      var serverId = document.getElementById("server").value;
-      var name = document.getElementById("name").value;
-      var emoji = document.getElementById("emoji").value;
+      serverId = serverInput.value;
+      name = nameInput.value;
+      emoji = emojiInput.value;
+
+      window.localStorage.setItem('serverId', serverId)
+      window.localStorage.setItem('playerName', name)
+      window.localStorage.setItem('playerEmoji', emoji)
 
       // TODO check values
       socket.emit('register', {serverId: serverId, name: name, emoji: emoji});
@@ -88,6 +101,13 @@ false);
     socket.emit('register', {serverId: serverId, name: playerName});
     window.localStorage.setItem('playerName', playerName);
     */
+
+    function reconnect(){
+      console.log('reconnect')
+      window.setTimeout(function(){
+        socket.emit('register', {serverId: serverId, name: name, emoji: emoji});
+      }, 1000)
+    }
 
     console.log(touchArea.width, touchArea.height);
 
@@ -194,6 +214,7 @@ false);
 
     socket.on('playsound', playSound);
     socket.on('crash', vibrate);
+    socket.on('disconnect', reconnect);
 
   </script>
 </html>

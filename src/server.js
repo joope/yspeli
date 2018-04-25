@@ -30,19 +30,25 @@ io.on('connection', function(socket){
     })
   })
   socket.on('register', function(data) {
-    players[playerID] = {name: data.name, serverId: data.serverId};
+    players[playerID] = {name: data.name, serverId: data.serverId, emoji: data.emoji};
     io.to(serverIds[data.serverId]).emit('register', {
       playerID: playerID, name: data.name, emoji: data.emoji
     });
     console.log(serverIds);
     console.log(players);
   });
-  socket.on('registerServer', function(callback){
+  socket.on('registerServer', function(callback){ 
     var serverId = 'AAAA';
     // if (Object.keys(serverIds).length > 0) {
     //     var serverId = randomString(4);
     // }
     serverIds[serverId] = socket.id;
+    // Reconnect players automatically to new server // ONLY FOR DEBUGGING
+    Object.keys(players).forEach(p => {
+      io.to(serverIds['AAAA']).emit('register', {
+        playerID: p, name: players[p].name, emoji: players[p].emoji
+      });
+    });
     callback(serverId);
   })
   // Pass the triggersound message (sent by host) to all clients
@@ -62,12 +68,12 @@ io.on('connection', function(socket){
 });
 
 function getServerId(playerID) {
-    var serverId = players[playerID] ? players[playerID].serverId : 'lolol';
+    var serverId = players[playerID] ? players[playerID].serverId : 'AAAA';
     return serverIds[serverId];
 }
 
 function randomString(length) {
-    var chars = '123456789ABCDEFGHIJKLMNPQRSTUVWXYZ';
+    var chars = 'ABCDEFGHIJKLMNPQRSTUVWXYZ';
     var result = '';
     for (var i = length; i > 0; --i) result += chars[Math.floor(Math.random() * chars.length)];
     return result;
