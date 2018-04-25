@@ -816,6 +816,13 @@
       return (isGoal && ball.pos.x >= arena.right + rules.ballSize) || ball.pos.y >= goals[1].pos.y && ball.pos.y <= goals[1].pos.y + goals[1].height && ball.pos.x >= arena.right + rules.ballSize;
     }
 
+    function reconnect(){
+      window.setTimeout(function(){
+        socket.emit('registerServer', function(serverId){
+          ID = serverId;
+      })}, 1000);
+    }
+
     // Helper functions end
 
     socket.on('register', registerPlayer)
@@ -825,6 +832,7 @@
       // Remove comment to delete players:
       delete players[playerID];
     })
+    socket.on('disconnect', reconnect);
 
     window.requestAnimationFrame(handleGameTick);
   </script>
