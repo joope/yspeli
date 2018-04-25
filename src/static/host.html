@@ -140,7 +140,8 @@
       z: 0.0,
       vel: new Vec2(0, 0),
       vz: 0.0,
-      az: 0.0
+      az: 0.0,
+      color: '#c2c2c2'
     }
     var arena = {
       left: arenaGap,
@@ -499,8 +500,16 @@
         }
       }
       // TODO bounce ball inside the goal
+      // FOR DEBUGGING
+      if (ballInCenterArea()){
+        ball.color = 'blue';
+      } else {
+        ball.color = '#c2c2c2';
+      }
+      // DEBUGGING ENDS
       if (!ballInCenterArea() && ball.pos.x < left_pad || !ballInCenterArea() && ball.pos.x > right_pad) {
         ball.vel.x = -ball.vel.x;
+        ball.col = 'green';
       }
       if (!isGoal && !ballInCenterArea()) {
         ball.pos.x = Math.max(left_pad, ball.pos.x);
@@ -571,7 +580,7 @@
       ctx.beginPath();
       ctx.strokeStyle = 'black';
       ctx.arc(pos.x, pos.y, ballSize + ball.z * 3, 0, 2 * Math.PI);
-      ctx.fillStyle = "#c2c2c2";
+      ctx.fillStyle = ball.color;
       ctx.fill();
       ctx.stroke();
       ctx.closePath();
