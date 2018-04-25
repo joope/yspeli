@@ -256,6 +256,24 @@
     // We need to instantiate our generator before we can use it.
     let stateMachine = stateLogic();
 
+    // DEBUG
+    var mouse = {};
+    function mouseMove(evt) {
+      var getMousePos = function(canvas, evt) {
+        //cvar rect = canvas.getBoundingClientRect(),  // abs. size of element
+        //scaleX = canvas.width / rect.width,     // relationship bitmap vs. element for X
+        //scaleY = canvas.height / rect.height;   // relationship bitmap vs. element for Y
+
+        return {
+          x: (evt.clientX - canvas.offsetLeft) ,
+          y: (evt.clientY - canvas.offsetTop)
+        }
+      }
+
+      mouse = getMousePos(canvas, evt);
+    }
+    window.addEventListener('mousemove', mouseMove, false);
+
     function handleGameTick() {
       t = performance.now();
 
@@ -509,6 +527,10 @@
       if (ball.pos.y < top_pad || ball.pos.y > bottom_pad) ball.vel.y = -ball.vel.y;
       ball.pos.y = Math.max(top_pad, ball.pos.y);
       ball.pos.y = Math.min(bottom_pad, ball.pos.y);
+
+      // DEBUG: ball with mouse
+      //ball.pos.x = mouse.x;
+      //ball.pos.y = mouse.y;
     }
 
     // Object position calculations end
