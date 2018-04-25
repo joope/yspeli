@@ -384,8 +384,7 @@
         velocityDir.normalize();
         var velocityMag = player.vel.magnitude();
 
-        var driveVelocity = new Vec2(0,0);
-        Vec2.multiply_inplace(dir, player.v * rules.acceleration, driveVelocity);
+        var driveVelocity = Vec2.multiply(dir, player.v * rules.acceleration);
 
         var V_a = Vec2.multiply(dir, Vec2.dot(dir, player.vel));
         var V_b = Vec2.subtract(player.vel, V_a);
@@ -394,9 +393,9 @@
             //Vec2.multiply(dir, V_a.magnitude()),
             V_a,
             Vec2.multiply(V_b, rules.stiffness), player.vel);
-        Vec2.add_inplace(player.vel, Vec2.multiply(dir, player.v*rules.acceleration), player.vel);
+        player.vel.add(Vec2.multiply(dir, player.v*rules.acceleration));
 
-        Vec2.add_inplace(player.pos, Vec2.multiply(player.vel, dt), player.pos);
+        player.pos.add(Vec2.multiply(player.vel, dt));
         const newpos = player.pos.clone();
         newpos.x = Math.max(arena.left + rules.playerSize, newpos.x);
         newpos.y = Math.max(arena.top, newpos.y);
@@ -411,11 +410,9 @@
           player.vel.y *= -1.0;
         }
 
-        //TODO mirror also direction
-
         newpos.copyTo(player.pos); // Actually update player position
 
-        Vec2.multiply_inplace(player.vel, rules.friction, player.vel);
+        player.vel.multiply(rules.friction);
         player.v *= 0.9;
 
         var dirDiff = shortAngleDist(player.dir, player.targetDir);
@@ -442,13 +439,12 @@
           continue;
         }
 
-        // normalize diff vector
-        Vec2.multiply_inplace(diff, 1.0/dist, diff);
+        diff.normalize();
 
         // Move both players outwards
         Vec2.multiply_inplace(diff, 0.5*(threshold - dist)+5, temp);
-        Vec2.add_inplace(pl1.pos, temp, pl1.pos);
-        Vec2.subtract_inplace(pl2.pos, temp, pl2.pos);
+        pl1.pos.add(temp);
+        pl2.pos.subtract(temp);
 
         // https://www.gamasutra.com/view/feature/131424/pool_hall_lessons_fast_accurate_.php?page=3
 
@@ -467,17 +463,17 @@
         // v1' = v1 - optimizedP * m2 * n
         // Vector v1b = v1 - optimizedP * circle2.mass * n;
         diff.copyTo(n1);
-        Vec2.multiply_inplace(n1, mass2, n1);
-        Vec2.multiply_inplace(n1, optimizedP, n1);
-        Vec2.subtract_inplace(pl1.vel, n1, pl1.vel);
+        n1.multiply(mass2);
+        n1.multiply(optimizedP);
+        pl1.vel.subtract(n1);
 
         // Calculate v1', the new movement vector of circle1
         // v2' = v2 + optimizedP * m1 * n
         // Vector v2' = v2 + optimizedP * circle1.mass * n;
         diff.copyTo(n2);
-        Vec2.multiply_inplace(n2, mass1, n2);
-        Vec2.multiply_inplace(n2, optimizedP, n2);
-        Vec2.add_inplace(pl2.vel, n1, pl2.vel);
+        n2.multiply(mass1);
+        n2.multiply(optimizedP);
+        pl2.vel.add(n1);
       }
       }
     }
@@ -511,8 +507,8 @@
           ball.vel.x = (Math.sin(direction) + slowdown * player.vel.x);
           ball.vel.y = (Math.cos(direction) + slowdown * player.vel.y);
           ball.vz = ball.vz + 0.12*player.vel.magnitude();
-          Vec2.subtract_inplace(player.pos, Vec2.multiply(normal, threshold - distance), player.pos);
-          Vec2.multiply_inplace(player.vel, -0.2, player.vel);
+          player.pos.subtract(Vec2.multiply(normal, threshold - distance));
+          player.vel.multiply(-0.2);
           socket.emit('crash', playerID);
         }
       })
@@ -690,7 +686,7 @@
     }
 
     function drawScoreboard() {
-      ctx.font = "96px sans-serif";
+      ctx.font = "97px sans-serif";
       ctx.fillStyle = 'white';
       let pos = new Vec2(arena.center.x - 100, arena.top + 100);
       worldPos = worldToScreen(pos);
