@@ -101,7 +101,7 @@
 
     var rules = {
       friction: 0.995,
-      ball_friction: 0.99,
+      ballFriction: 0.98,
       simulationSpeed: 1.0,
       acceleration: 0.22,
       accbias: 0.0,
@@ -496,7 +496,7 @@
           socket.emit('crash', playerID);
         }
       })
-      ball.vel = Vec2.multiply(ball.vel, rules.ball_friction);
+      ball.vel = Vec2.multiply(ball.vel, rules.ballFriction);
       ball.vz = Math.max(ball.vz - 0.05, -5);
       ball.pos = Vec2.add(ball.pos, ball.vel);
       ball.z = Math.max(ball.z + dt * ball.vz, 0);
