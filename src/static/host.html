@@ -122,12 +122,13 @@
     })
     sounds.crowdBackground = new Howl({
       src: ['sounds/crowd_background.mp3'],
-      volume: 0.2,
+      volume: 0.07,
       loop: true,
     })
-    sounds.crowdBackground = new Howl({
+    sounds.crowdBackground2 = new Howl({
       src: ['sounds/crowd_cheer.mp3'],
-      volume: 0.5,
+      volume: 0.00,
+      loop: true,
     })
 
     var lastSoundPlayed = {
@@ -151,6 +152,7 @@
       skidmarkLimit: 0.05,// higher limit means more tire tracks left
       skidSpeedBonus: 3.0,
       carSideBounce: 0.8,
+      playerPushBack: -0.05
     }
 
     const maxV = 0.9;
@@ -323,6 +325,7 @@
         }
 
         sounds.crowdBackground.play();
+        sounds.crowdBackground2.play();
 
         while (!canStart) {
           yield STATE_WARMUP;
@@ -397,6 +400,7 @@
             if (score.red < score.blue) sounds.blueleads.play();
             if (score.red === score.blue) sounds.tiedscore.play();
             sounds.goalMusic.play();
+            sounds.crowdBackground2.fade(0.9, 0.2, 8000);
             //socket.emit("triggersound", {sound:"vuvuzela"});
         } else if (gameState == STATE_FACE_OFF) {
           initGamePositions();
@@ -596,7 +600,7 @@
           ball.vz = ball.vz + 0.05*Math.min(player.vel.magnitude(), 2) + 0.2;
           player.pos.subtract(normal);
           player.bump = player.vel.magnitude()/30.0;
-          player.vel.multiply(-0.10);
+          player.vel.multiply(rules.playerPushBack);
           playSoundEffect('kick', Math.min(player.vel.magnitude() / 4, 0.7), playerID);
           ball.lastTouchedId = playerID;
         }
@@ -619,23 +623,25 @@
         // TODO: add the real distance to ball position, not normal
 
         // 2(V * N) N + V
+        var poleHit = false;
+        var normal;
         if (d1 <= rules.ballSize) {
-          var normal = new Vec2(Math.sqrt(2)/2, Math.sqrt(2)/2);
-          ball.vel = normal.multiply(normal.dot(ball.vel)).multiply(-2).add(ball.vel);
-          ball.pos.add(normal);
+          normal = new Vec2(Math.sqrt(2)/2, Math.sqrt(2)/2);
+          poleHit = true;
         }
         if (d2 <= rules.ballSize) {
-          var normal = new Vec2(Math.sqrt(2)/2, -Math.sqrt(2)/2);
-          ball.vel = normal.multiply(normal.dot(ball.vel)).multiply(-2).add(ball.vel);
-          ball.pos.add(normal);
+          normal = new Vec2(Math.sqrt(2)/2, -Math.sqrt(2)/2);
+          poleHit = true;
         }
         if (d3 <= rules.ballSize) {
-          var normal = new Vec2(-Math.sqrt(2)/2, Math.sqrt(2)/2);
-          ball.vel = normal.multiply(normal.dot(ball.vel)).multiply(-2).add(ball.vel);
-          ball.pos.add(normal);
+          normal = new Vec2(-Math.sqrt(2)/2, Math.sqrt(2)/2);
+          poleHit = true;
         }
         if (d4 <= rules.ballSize) {
-          var normal = new Vec2(-Math.sqrt(2)/2, -Math.sqrt(2)/2);
+          normal = new Vec2(-Math.sqrt(2)/2, -Math.sqrt(2)/2);
+          poleHit = true;
+        }
+        if (poleHit && normal) {
           ball.vel = normal.multiply(normal.dot(ball.vel)).multiply(-2).add(ball.vel);
           ball.pos.add(normal);
         }
@@ -649,7 +655,7 @@
           isGoal = true;
           var scoredPlayer = players[ball.lastTouchedId];
           if (scoredPlayer && scoredPlayer.team === 0) {
-            updateMessage(scoredPlayer.name + ' MAKES OWN SCORE', "blue", 6000);
+            updateMessage(scoredPlayer.name + ' MAKES OWN GOAL', "blue", 6000);
           } else {
             updateMessage("RED SCORES", "red", 6000);
           }
@@ -661,7 +667,7 @@
           isGoal = true;
           var scoredPlayer = players[ball.lastTouchedId];
           if (scoredPlayer && scoredPlayer.team === 1) {
-            updateMessage(scoredPlayer.name + ' MAKES OWN SCORE', "red", 6000);
+            updateMessage(scoredPlayer.name + ' MAKES OWN GOAL', "red", 6000);
           } else {
             updateMessage("BLUE SCORES", "blue", 6000);
           }
@@ -682,6 +688,14 @@
       if (ball.pos.y < top_pad || ball.pos.y > bottom_pad) ball.vel.y = -ball.vel.y;
       ball.pos.y = Math.max(top_pad, ball.pos.y);
       ball.pos.y = Math.min(bottom_pad, ball.pos.y);
+
+      if (!isGoal && STATE_GAME==='game') {
+        var distanceToBlue = Vec2.subtract(ball.pos, new Vec2(0, arena.center.y)).magnitude();
+        var distanceToRed = Vec2.subtract(ball.pos, new Vec2(arena.width, arena.center.y)).magnitude();
+        console.log(distanceToBlue, distanceToRed);
+        var volume = (((arena.width - Math.min(distanceToBlue, distanceToRed)) / arena.width) - 0.5) * 2;
+        sounds.crowdBackground2.volume(volume - 0.5);
+      }
 
       // DEBUG: ball with mouse
       // ball.pos.x = mouse.x;
@@ -981,6 +995,7 @@
           sounds[id].play('' + randomCrash);
         } else {
           sounds[id].play();
+          sounds[id].rate(0.7);
         }
         sounds[id].volume(volume);
         lastSoundPlayed[id] = performance.now();

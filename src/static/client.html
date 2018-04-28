@@ -72,7 +72,7 @@
 
     serverInput.value = window.localStorage.getItem('serverId') || 'AAAA';
     nameInput.value = window.localStorage.getItem('playerName') || '';
-    emojiInput.value = window.localStorage.getItem('playerEmoji') || '';
+    emojiInput.value = '';
 
     if (serverInput.value === 'AAAA' && nameInput.value && emojiInput.value) {
       setPlayerInfo(document.createEvent('event'))
