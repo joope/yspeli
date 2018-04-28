@@ -43,12 +43,6 @@ io.on('connection', function(socket){
     //     var serverId = randomString(4);
     // }
     serverIds[serverId] = socket.id;
-    // Reconnect players automatically to new server // ONLY FOR DEBUGGING
-    Object.keys(players).forEach(p => {
-      io.to(serverIds['AAAA']).emit('register', {
-        playerID: p, name: players[p].name, emoji: players[p].emoji
-      });
-    });
     callback(serverId);
   })
   // Pass the triggersound message (sent by host) to all clients

@@ -152,7 +152,7 @@
       skidmarkLimit: 0.05,// higher limit means more tire tracks left
       skidSpeedBonus: 3.0,
       carSideBounce: 0.8,
-      playerPushBack: -0.05
+      playerPushBack: 0.3
     }
 
     const maxV = 0.9;
@@ -180,6 +180,8 @@
       red: 0,
       blue: 0
     }
+
+    var crowdVolume = 0.0;
     // Settings end
 
     // Game object initializations -->
@@ -417,17 +419,18 @@
         } else if (gameState == STATE_GAME) {
             updateMessage("PLAY", "GREEN", 3000);
             initGamePositions();
-            sounds.begin.play();
+            sounds.whistle.play();
         } else if (gameState == STATE_GOAL) {
             console.log("Goal!");
             if (score.red > score.blue) sounds.redleads.play();
             if (score.red < score.blue) sounds.blueleads.play();
             if (score.red === score.blue) sounds.tiedscore.play();
             sounds.goalMusic.play();
-            sounds.crowdBackground2.fade(0.9, 0.2, 8000);
+            sounds.crowdBackground2.fade(0.9, 0.0, 10000);
             //socket.emit("triggersound", {sound:"vuvuzela"});
         } else if (gameState == STATE_FACE_OFF) {
           initGamePositions();
+          sounds.begin.play();
           isGoal = false;
         }
 
@@ -460,7 +463,7 @@
       if (gameState === 'teamselect') {
         updatePlayerTeams(players);
       }
-
+      sounds.crowdBackground2.volume(sounds.crowdBackground2-0.01);
       updateSkidmarks();
       ctx.drawImage(bgCanvas, 0, 0);
       drawScoreboard();
@@ -713,12 +716,14 @@
       ball.pos.y = Math.max(top_pad, ball.pos.y);
       ball.pos.y = Math.min(bottom_pad, ball.pos.y);
 
-      if (!isGoal && STATE_GAME==='game') {
+      if (!isGoal && gameState === 'game') {
         var distanceToBlue = Vec2.subtract(ball.pos, new Vec2(0, arena.center.y)).magnitude();
         var distanceToRed = Vec2.subtract(ball.pos, new Vec2(arena.width, arena.center.y)).magnitude();
-        console.log(distanceToBlue, distanceToRed);
-        var volume = (((arena.width - Math.min(distanceToBlue, distanceToRed)) / arena.width) - 0.5) * 2;
-        sounds.crowdBackground2.volume(volume - 0.5);
+        var distance = Math.min(distanceToBlue, distanceToRed) / arena.width;
+        //var volume = (((arena.width - Math.min(distanceToBlue, distanceToRed)) / arena.width) - 0.5);
+        crowdVolume = Math.min(Math.max(crowdVolume + (0.4 - distance)*0.03, 0), 0.8);
+        sounds.crowdBackground2.volume(crowdVolume);
+        crowdVolume -= 0.005;
       }
 
       // DEBUG: ball with mouse
@@ -925,11 +930,11 @@
     }
 
     function drawGoals() {
-      if (gameState != STATE_WARMUP) {
+      // if (gameState != STATE_WARMUP) {
         for (i = 0; i < goals.length; i++) {
           goals[i].draw();
           }
-      }
+      // }
     }
 
     function drawDebug(time) {
