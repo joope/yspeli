@@ -612,6 +612,12 @@
       let top_pad = arena.top + rules.ballSize;
       let bottom_pad = arena.bottom - rules.ballSize;
 
+      if (gameState === STATE_TEAM_SELECT) {
+        ball.pos.x = -100;
+        ball.pos.y = -100;
+        return;
+      }
+
       forEachPlayer(function(player, i, playerID){
         var delta = Vec2.subtract(ball.pos, player.pos);
         var normal = new Vec2(delta.x, delta.y); // TODO inplace?
@@ -699,6 +705,13 @@
             updateMessage("BLUE SCORES", "blue", 6000);
           }
         }
+      } else if (gameState === STATE_WARMUP){
+        if (ballInBlueGoal() || ballInRedGoal()) {
+          ball.pos = arena.center;
+          ball.vel.x = 0;
+          ball.vel.y = 0;
+          ball.z = 10;
+        }
       }
 
       // TODO bounce ball inside the goal
@@ -716,7 +729,7 @@
       ball.pos.y = Math.max(top_pad, ball.pos.y);
       ball.pos.y = Math.min(bottom_pad, ball.pos.y);
 
-      if (!isGoal && gameState === 'game') {
+      if (!isGoal && gameState === STATE_GAME) {
         var distanceToBlue = Vec2.subtract(ball.pos, new Vec2(0, arena.center.y)).magnitude();
         var distanceToRed = Vec2.subtract(ball.pos, new Vec2(arena.width, arena.center.y)).magnitude();
         var distance = Math.min(distanceToBlue, distanceToRed) / arena.width;
@@ -828,7 +841,7 @@
 
           ctx.save();
           //ctx.strokeStyle = 'rgb(255,255,255)';
-          ctx.strokeStyle = 'rgb(100,100,100)';
+          ctx.strokeStyle = ['rgb(50,150,150)', 'rgb(200,150,50)'][i];
           ctx.lineWidth = 8;
           var wallX = arena.left + i*arena.width - sign*5;
 
