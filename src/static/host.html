@@ -102,6 +102,10 @@
       src: ['sounds/blueleads.wav'],
       volume: 0.5,
     })
+    sounds.tiedscore = new Howl({
+      src: ['sounds/tiedscore.wav'],
+      volume: 0.5,
+    })
 
     // Game settings -->
     let isGoal = false;
@@ -368,7 +372,7 @@
         // Actions on specific state transitions
 
         if (oldGameState == STATE_FACE_OFF && gameState == STATE_GAME) {
-            music.stop();
+            sounds.goalMusic.stop();
             canStart = false;
         }
       }
@@ -604,13 +608,27 @@
           score.red = score.red + 1;
           isGoal = true;
           updateMessage("RED SCORES", "red", 6000);
+          if (score.red > score.blue) {
+            sounds.redleads.play();
+          }
+          if (score.red === score.blue) {
+            sounds.tiedscore.play();
+          }
         }
         if (ballInRedGoal()){
           score.blue = score.blue + 1;
           isGoal = true;
           updateMessage("BLUE SCORES", "blue", 6000);
+
+          if (score.blue > score.red) {
+            sounds.blueleads.play();
+          }
+          if (score.red === score.blue) {
+            sounds.tiedscore.play();
+          }
         }
       }
+
       // TODO bounce ball inside the goal
 
       if (!ballInCenterArea() && ball.pos.x < left_pad || !ballInCenterArea() && ball.pos.x > right_pad) {
