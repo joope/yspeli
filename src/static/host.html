@@ -59,12 +59,6 @@
       <button id="startbutton" onclick="startGame(true)">Start Game</button>
       <canvas id="game"></canvas>
     </div>
-    <div style="display:none;">
-      <img id="car_red" src="/redcar.svg">
-      <img id="car_blue" src="/bluecar.svg">
-      <img id="ball" src="/ball.png">
-      <img id="grass" src="/grass.png">
-    </div>
   </body>
   <script>
     var socket = io();
@@ -81,35 +75,10 @@
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
       initializeGame();
-      redrawBgCanvas();
+      redrawArenaBackground();
     };
 
     var ctx=canvas.getContext("2d");
-    var car_red = document.getElementById('car_red');
-    var car_blue = document.getElementById('car_blue');
-    var imgBall = document.getElementById('ball');
-    var imgGrass = document.getElementById('grass');
-
-    // Render the background image
-    var bgCanvas = document.createElement("canvas");
-    function redrawBgCanvas() {
-        bgCanvas.width = canvas.width;
-        bgCanvas.height = canvas.height;
-        var ctx=bgCanvas.getContext("2d");
-        var w = imgGrass.width;
-        var h = imgGrass.height;
-        ctx.save();
-        ctx.fillStyle = 'rgba(0,0,0,0)'; // Fill with transparency first.
-        ctx.fillRect(0, 0, w, h);
-        ctx.restore();
-        for (var x=0;x<Math.ceil(bgCanvas.width/w);x++) {
-        for (var y=0;y<Math.ceil(bgCanvas.height/h);y++) {
-            ctx.drawImage(imgGrass, x*w, y*h, w, h);
-        }
-        }
-    }
-    imgGrass.addEventListener('load', redrawBgCanvas()); // TODO is there a nice way to make sure image is loaded?
-
     var flashTimer = null;
 
     var sounds = {};
@@ -249,13 +218,47 @@
         })
       ]
     }
+
     initializeGame();
+
+    // Game object initializations end
+
+    // Load game sprites
+
+    var sprites = {};
+
+    function getImage(url, id){
+        return new Promise(function(resolve, reject){
+            var img = new Image()
+            img.onload = function(){
+                resolve({"img": img, "id": id})
+            }
+            img.onerror = function(){
+                console.log("Failed to load image", url, id);
+                reject({"img": img, "id": id})
+            }
+            img.src = url
+        })
+    }
+
+    var assetLoads = []; // These promises need to finish before we start the main loop.
+
+    var saveSprite = function(sprite) {
+        sprites[sprite.id] = sprite.img;
+    }
+
+    assetLoads.push(getImage("/redcar.svg", "car_red").then(saveSprite));
+    assetLoads.push(getImage("/bluecar.svg", "car_blue").then(saveSprite));
+    assetLoads.push(getImage("/ball.png", "ball").then(saveSprite));
+    assetLoads.push(getImage("/grass.png", "grass").then(saveSprite));
+
+    var bgCanvas = document.createElement("canvas");
+
+    // Game start timer
 
     var canStart = false;
     var timer = 60;
     var startButton = document.getElementById('startbutton');
-
-    // Game object initializations end
 
     function startGame(bool) {
       canStart = bool;
@@ -341,7 +344,7 @@
           console.log("Initializing game");
           startButton.style.visibility = "visible";
           initGamePositions();
-          redrawBgCanvas();
+          redrawArenaBackground();
           score.red = 0;
           score.blue = 0;
         } else if (gameState == STATE_WARMUP) {
@@ -393,7 +396,7 @@
       }
 
       updateSkidmarks();
-      drawArena();
+      ctx.drawImage(bgCanvas, 0, 0);
       drawScoreboard();
       drawPlayers();
       drawBall();
@@ -631,9 +634,9 @@
     // Object position calculations end
 
 
-    // Draw functions start
+    // Drawing functions begin
 
-function updateSkidmarks() {
+    function updateSkidmarks() {
     //var offscreen_data = offscreen_context.getImageData(x, y, width, height);
 
     // Rotates Vec2 v clockwise (since y-axis points down) by the given angle.
@@ -675,37 +678,50 @@ function updateSkidmarks() {
 
     }
 
-    function drawArena() {
-      let pos = worldToScreen(new Vec2(arena.left, arena.top));
+    function redrawArenaBackground() {
+        bgCanvas.width = canvas.width;
+        bgCanvas.height = canvas.height;
+        var ctx=bgCanvas.getContext("2d");
+        var w = sprites["grass"].width;
+        var h = sprites["grass"].height;
 
-      ctx.save();
+        let pos = worldToScreen(new Vec2(arena.left, arena.top));
 
-      // Background
+        ctx.save();
 
-      ctx.fillStyle = 'rgb(120, 205, 50)';
-      ctx.fillRect(pos.x, pos.y, arena.width, arena.height);
-      ctx.lineWidth = 2;
+        // Background
 
-      // Center line
-      ctx.beginPath();
-      ctx.lineWidth=8;
-      ctx.strokeStyle = 'rgb(150, 225, 100)';
-      ctx.moveTo(arena.center.x, 0);
-      ctx.lineTo(arena.center.x, arena.bottom);
-      ctx.closePath();
-      ctx.stroke();
+        ctx.fillStyle = 'rgb(120, 205, 50)';
+        ctx.fillRect(pos.x, pos.y, arena.width, arena.height);
+        ctx.lineWidth = 2;
 
-      // Center circle
-      ctx.beginPath();
-      ctx.arc(arena.center.x, arena.center.y, 100, 0, 2 * Math.PI);
-      ctx.closePath();
-      ctx.stroke();
-      ctx.restore();
+        // Center line
+        ctx.beginPath();
+        ctx.lineWidth=8;
+        ctx.strokeStyle = 'rgb(150, 225, 100)';
+        ctx.moveTo(arena.center.x, 0);
+        ctx.lineTo(arena.center.x, arena.bottom);
+        ctx.closePath();
+        ctx.stroke();
 
-      ctx.drawImage(bgCanvas, 0, 0);
-      ctx.fillStyle = 'rgb(100, 100, 100)';
-      ctx.fillRect(0,0,goals[0].width, canvas.height);
-      ctx.fillRect(canvas.width - goals[0].width,0, goals[0].width, canvas.height);
+        // Center circle
+        ctx.beginPath();
+        ctx.arc(arena.center.x, arena.center.y, 100, 0, 2 * Math.PI);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.restore();
+
+        // Draw the grass
+        for (var x=0;x<Math.ceil(bgCanvas.width/w);x++) {
+        for (var y=0;y<Math.ceil(bgCanvas.height/h);y++) {
+            ctx.drawImage(sprites["grass"], x*w, y*h, w, h);
+        }
+        }
+
+        // Draw grey "goals"
+        ctx.fillStyle = 'rgb(100, 100, 100)';
+        ctx.fillRect(0,0,goals[0].width, canvas.height);
+        ctx.fillRect(canvas.width - goals[0].width,0, goals[0].width, canvas.height);
     }
 
     function drawPlayers() {
@@ -727,7 +743,7 @@ function updateSkidmarks() {
         ctx.rotate(player.dir + Math.PI/2);
         var bumpx = 30 * player.bump;
         var bumpy = 40 * player.bump;
-        ctx.drawImage([car_blue, car_red][player.team], -40 - bumpx/2, -50 + bumpy/2, 80 + bumpx, 100 - bumpy);
+        ctx.drawImage([sprites["car_blue"], sprites["car_red"]][player.team], -40 - bumpx/2, -50 + bumpy/2, 80 + bumpx, 100 - bumpy);
         ctx.fillText(player.emoji, -ctx.measureText(player.emoji).width / 2, 32);
         ctx.closePath();
         ctx.restore();
@@ -751,7 +767,7 @@ function updateSkidmarks() {
       ctx.translate(pos.x, pos.y);
       ctx.rotate(ball.angle);
       size += 4;
-      ctx.drawImage(imgBall, -size, -size, size*2, size*2);
+      ctx.drawImage(sprites["ball"], -size, -size, size*2, size*2);
       ctx.restore();
     }
 
@@ -919,6 +935,9 @@ function updateSkidmarks() {
     })
     socket.on('disconnect', reconnect);
 
-    window.requestAnimationFrame(handleGameTick);
+    Promise.all(assetLoads).then(function () {
+        console.log("Assets loaded.");
+        window.requestAnimationFrame(handleGameTick);
+    });
   </script>
 </html>
