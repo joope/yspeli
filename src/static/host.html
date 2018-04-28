@@ -106,8 +106,21 @@
       src: ['sounds/kick.mp3'],
       volume: 0.5,
     })
+    sounds.crash = new Howl({
+      src: ['sounds/crash_2.mp3'],
+      sprite: {
+        0: [100, 150],
+        1: [100, 150],
+        2: [100, 150],
+        3: [100, 150]
+      },
+      volume: 0.5,
+    })
 
-    var lastSoundPlayed = performance.now();
+    var lastSoundPlayed = {
+      crash: performance.now(),
+      kick: performance.now(),
+    }
 
     // Game settings -->
     let isGoal = false;
@@ -420,7 +433,7 @@
     }
 
     function updatePlayerPositions(dt) {
-      forEachPlayer(function(player){
+      forEachPlayer(function(player, i, playerID){
         // TODO Try to reuse vector variables here in order not to generate too much garbage.
         var dir = new Vec2(Math.cos(player.dir), Math.sin(player.dir));
         var velocityDir = player.vel.clone();
@@ -452,9 +465,11 @@
         // If position changed above we know we hit a border.
         if (newpos.x != player.pos.x) {
           player.vel.x *= -1.0 * rules.carSideBounce;
+          playSoundEffect('crash', Math.min(player.vel.magnitude() / 20), playerID);
         }
         if (newpos.y != player.pos.y) {
           player.vel.y *= -1.0 * rules.carSideBounce;
+          playSoundEffect('crash', Math.min(player.vel.magnitude() / 20), playerID);
         }
 
         newpos.copyTo(player.pos); // Actually update player position
@@ -495,6 +510,9 @@
         Vec2.multiply_inplace(diff, 0.5*(threshold - dist)+5, temp);
         pl1.pos.add(temp);
         pl2.pos.subtract(temp);
+        socket.emit('crash', i);
+        socket.emit('crash', j);
+
 
         // https://www.gamasutra.com/view/feature/131424/pool_hall_lessons_fast_accurate_.php?page=3
 
@@ -556,7 +574,7 @@
           var slowdown = 0.6;
           ball.vel.x = (Math.sin(direction) + slowdown * player.vel.x);
           ball.vel.y = (Math.cos(direction) + slowdown * player.vel.y);
-          ball.vz = ball.vz + 0.12*player.vel.magnitude();
+          ball.vz = ball.vz + 0.08*player.vel.magnitude() + 0.1;
           player.pos.subtract(normal);
           player.bump = player.vel.magnitude()/30.0;
           player.vel.multiply(-0.15);
@@ -735,7 +753,7 @@
         let pos = worldToScreen(player.pos);
 
         ctx.beginPath();
-        ctx.fillStyle = ['lightblue', 'lightpink'][player.team];
+        ctx.fillStyle = 'white'; // ['lightblue', 'lightpink'][player.team];
         // ctx.arc(pos.x, pos.y, rules.playerSize, 0, 2 * Math.PI);
         // ctx.fill();
         // ctx.moveTo(pos.x, pos.y);
@@ -758,7 +776,7 @@
 
     function drawBall() {
       let pos = worldToScreen(ball.pos);
-      var size = rules.ballSize + ball.z * 5;
+      var size = rules.ballSize + ball.z * 7;
       ctx.save();
       ctx.beginPath();
       ctx.strokeStyle = 'black';
@@ -852,7 +870,7 @@
           oldDir: 0.0,
           targetDir: 0.0,
           skidding: 0.0,
-          team: 0,
+          team: Math.floor(Math.random()*2),
           name: data.name,
           emoji: data.emoji,
           bump: 0
@@ -924,10 +942,15 @@
     }
 
     function playSoundEffect(id, volume, playerID) {
-      if (performance.now() - lastSoundPlayed > 50) {
-        sounds[id].play();
+      if (performance.now() - lastSoundPlayed[id] > 50) {
+        if (id === 'crash') {
+          var randomCrash = Math.floor(Math.random()*4);
+          sounds[id].play('' + randomCrash);
+        } else {
+          sounds[id].play();
+        }
         sounds[id].volume(volume);
-        lastSoundPlayed = performance.now();
+        lastSoundPlayed[id] = performance.now();
         socket.emit('crash', playerID);
       }
     }
