@@ -36,12 +36,12 @@
       }
     </style>
     <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.0.9/howler.core.min.js"></script>
   </head>
   <body>
     <form id="config">
-      <input id="server" type="text" placeholder="Server ID" maxlength="4"/> <br>
       <input id="name" type="text" placeholder="Player name" maxlength="10"/> <br>
-      <input id="emoji" type="text" placeholder="<emoji>"/> <br>
+      <input id="emoji" type="text" placeholder="<emoji>" maxlength="2"/> <br>
       <button type="submit">Send</button>
     </form>
     <canvas id="touchArea"></canvas>
@@ -51,8 +51,15 @@
 
     var touchArea = document.getElementById("touchArea");
     var ctx = touchArea.getContext("2d");
-    var audio = {}
-    audio["vuvuzela"] = new Audio('/vuvuzela_long.mp3');
+    var engineStart = new Howl({
+      src: ['sounds/carengine.mp3'],
+      volume: 0.1,
+    });
+    var engine = new Howl({
+      src: ['sounds/carengine2.wav'],
+      volume: 0.1,
+      loop: true
+    });
 
     touchArea.width = window.innerWidth;
     touchArea.height = window.innerWidth;
@@ -66,25 +73,25 @@
     var controlInterval, serverId, name, emoji;
 
     document.getElementById("config").addEventListener("submit", setPlayerInfo,false);
-    var serverInput = document.getElementById("server");
+    // var serverInput = document.getElementById("server");
     var nameInput = document.getElementById("name");
     var emojiInput = document.getElementById("emoji");
 
-    serverInput.value = window.localStorage.getItem('serverId') || 'AAAA';
+    // serverInput.value = 'AAAA';
     nameInput.value = window.localStorage.getItem('playerName') || '';
     emojiInput.value = '';
 
-    if (serverInput.value === 'AAAA' && nameInput.value && emojiInput.value) {
-      setPlayerInfo(document.createEvent('event'))
-    }
+    // if (serverInput.value === 'AAAA' && nameInput.value && emojiInput.value) {
+    //   setPlayerInfo(document.createEvent('event'))
+    // }
 
     function setPlayerInfo(event) {
       event.preventDefault();
-      serverId = serverInput.value;
+      serverId = 'AAAA' //serverInput.value;
       name = nameInput.value;
       emoji = emojiInput.value;
 
-      window.localStorage.setItem('serverId', serverId)
+      // window.localStorage.setItem('serverId', serverId)
       window.localStorage.setItem('playerName', name)
       window.localStorage.setItem('playerEmoji', emoji)
 
@@ -92,6 +99,10 @@
       socket.emit('register', {serverId: serverId, name: name, emoji: emoji});
       document.getElementById("config").style.visibility = "hidden";
       document.getElementById("touchArea").style.visibility = "visible";
+      engineStart.play();
+      window.setTimeout(() => {
+        engine.play();
+      }, 1000) 
     }
     /* 
     var serverId = window.localStorage.getItem('serverId') || 'AAAA';
@@ -142,6 +153,13 @@
       if (event) {
         direction = Math.atan2(y, x);     // angle between screen center and touch position
         velocity = Math.sqrt(x*x + y*y) * 1.5;  // distance from center, needs to be clamped on the server
+        var clamped = Math.min(velocity, 1);
+        engine.volume(0.2 + clamped * 0.8);
+        engine.rate(1 + clamped)
+      } else {
+        //engine.rate(0.5);
+        engine.fade(1, 0.2, 1000);
+        engine.rate(1);
       }
 
       ctx.fillStyle = 'rgb(70, 70, 70)';
@@ -207,7 +225,7 @@
 
     function vibrate(){
       console.log('crash');
-      window.navigator.vibrate(200);
+      window.navigator.vibrate(150);
     }
 
     setInterval(sendControl, 30);
