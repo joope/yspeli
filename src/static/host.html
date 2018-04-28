@@ -269,22 +269,25 @@
         })
     }
 
-    var assetLoads = []; // These promises need to finish before we start the main loop.
 
     var saveSprite = function(sprite) {
         sprites[sprite.id] = sprite.img;
     }
 
-    assetLoads.push(getImage("/redcar.png", "car_red").then(saveSprite));
-    assetLoads.push(getImage("/bluecar.png", "car_blue").then(saveSprite));
-    assetLoads.push(getImage("/ball.png", "ball").then(saveSprite));
-    assetLoads.push(getImage("/grass.png", "grass").then(saveSprite));
-    assetLoads.push(getImage("/red_net.png", "red_net").then(saveSprite));
-    assetLoads.push(getImage("/blue_net.png", "blue_net").then(saveSprite).then(
-      function (sprite) {
-      }
-    ));
-    assetLoads.push(getImage("/goal_end.png", "goal_end").then(saveSprite));
+   // These promises need to finish before we start the main loop.
+    var assetLoads = [
+      getImage("/redcar.png", "car_red").then(saveSprite),
+      getImage("/bluecar.png", "car_blue").then(saveSprite),
+      getImage("/car_shadow.png", "car_shadow").then(saveSprite),
+      getImage("/ball.png", "ball").then(saveSprite),
+      getImage("/ball_shadow.png", "ball_shadow").then(saveSprite),
+      getImage("/grass.png", "grass").then(saveSprite),
+      getImage("/red_net.png", "red_net").then(saveSprite),
+      getImage("/blue_net.png", "blue_net").then(saveSprite),
+      getImage("/goal_end.png", "goal_blue").then(saveSprite),
+      getImage("/goal_end.png", "goal_red").then(saveSprite),
+      getImage("/goal_end.png", "goal_red").then(saveSprite),
+    ]
 
     var bgCanvas = document.createElement("canvas");
 
@@ -707,7 +710,7 @@
             ctx.beginPath();
             ctx.lineWidth = 7;
             ctx.fillStyle = 'grey';
-            ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.strokeStyle = 'rgba(100, 50, 20, 0.1)';
             for (var x of [-1, 1]) {
                 for (var y of [-1, 1]) {
                     var ofs = new Vec2(y*40, x*30);
@@ -737,10 +740,9 @@
 
         let pos = worldToScreen(new Vec2(arena.left, arena.top));
 
-        ctx.save();
+        //ctx.save();
 
         // Background
-
         ctx.fillStyle = 'rgb(120, 205, 50)';
         //ctx.fillRect(pos.x, pos.y, arena.width, arena.height);
         ctx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
@@ -757,10 +759,11 @@
 
         // Center circle
         ctx.beginPath();
+        ctx.strokeStyle = 'rgb(150, 225, 100)';
         ctx.arc(arena.center.x, arena.center.y, 100, 0, 2 * Math.PI);
         ctx.closePath();
         ctx.stroke();
-        ctx.restore();
+        //ctx.restore();
 
         // Draw the grass
         for (var x=0;x<Math.ceil(bgCanvas.width/w);x++) {
@@ -771,13 +774,27 @@
 
         // Draw goals
 
-        //ctx.fillStyle = 'rgb(100, 100, 100)';
-        //ctx.fillRect(0,0,goals[0].width, canvas.height);
-        //ctx.fillRect(canvas.width - goals[0].width,0, goals[0].width, canvas.height);
-        var end = sprites["goal_end"];
 
         for (var i=0;i<2;i++) {
           var sign = 1 - 2*i;
+          var end = sprites[["goal_blue", "goal_red"][i]];
+
+          ctx.save();
+          //ctx.strokeStyle = 'rgb(255,255,255)';
+          ctx.strokeStyle = 'rgb(100,100,100)';
+          ctx.lineWidth = 8;
+          var wallX = arena.left + i*arena.width - sign*5;
+
+          ctx.beginPath();
+
+          ctx.moveTo(wallX, arena.top);
+          ctx.lineTo(wallX, goals[0].pos.y);
+          ctx.moveTo(wallX, goals[0].pos.y + goals[i].height);
+          ctx.lineTo(wallX, arena.bottom);
+          ctx.closePath();
+          ctx.stroke();
+          ctx.restore();
+
           ctx.save();
           ctx.translate(goals[i].pos.x, goals[i].pos.y);
           ctx.scale(sign, 1);
@@ -785,6 +802,13 @@
           ctx.translate(0, goals[i].height - end.height);
           ctx.scale(1, -1);
           ctx.drawImage(end, 0,0, sign*goals[i].width, -end.height);
+          ctx.restore();
+
+          ctx.save();
+          ctx.fillStyle = ['rgb(128,128,255)', 'rgb(200,60,60)'][i];
+          // ctx.fillRect((arena.left + arena.width)*i, arena.top, arena.left, goals[i].pos.y);
+          // ctx.fillRect((arena.left + arena.width)*i, goals[i].pos.y + goals[i].height, arena.left, arena.bottom);
+          ctx.fill();
           ctx.restore();
         }
         //ctx.drawImage(end, goals[0].pos.x, goals[0].pos.y + goals[0].height - end.height, goals[0].width, -end.height);
@@ -804,12 +828,26 @@
         ctx.font = "24px Arial"
         ctx.fillText(player.name, player.pos.x - ctx.measureText(player.name).width / 2, player.pos.y + rules.playerSize * 2);
         ctx.font = "72px Arial";
+
+        var bumpx = 30 * player.bump;
+        var bumpy = 40 * player.bump;
+        var carx = -40 - bumpx/2;
+        var cary = -50 + bumpy/2;
+        var carw = 80 + bumpx;
+        var carh = 100 - bumpy;
+
+        // Shadow
+        ctx.save();
+        ctx.translate(player.pos.x - 10, player.pos.y + 10);
+        ctx.rotate(player.dir + Math.PI/2);
+        ctx.drawImage(sprites["car_shadow"], carx, cary, carw, carh);
+        ctx.restore();
+
+        // The car
         ctx.save();
         ctx.translate(player.pos.x, player.pos.y);
         ctx.rotate(player.dir + Math.PI/2);
-        var bumpx = 30 * player.bump;
-        var bumpy = 40 * player.bump;
-        ctx.drawImage([sprites["car_blue"], sprites["car_red"]][player.team], -40 - bumpx/2, -50 + bumpy/2, 80 + bumpx, 100 - bumpy);
+        ctx.drawImage([sprites["car_blue"], sprites["car_red"]][player.team], carx, cary, carw, carh);
         ctx.fillText(player.emoji, -ctx.measureText(player.emoji).width / 2, 32);
         ctx.closePath();
         ctx.restore();
@@ -819,6 +857,7 @@
     function drawBall() {
       let pos = worldToScreen(ball.pos);
       var size = rules.ballSize + ball.z * 5;
+      var shadowSize = rules.ballSize*1.5;
       ctx.save();
       ctx.beginPath();
       ctx.strokeStyle = 'black';
@@ -831,6 +870,12 @@
 
       ctx.save();
       ctx.translate(pos.x, pos.y);
+
+      var ofs = ball.z * 20;
+      ctx.globalAlpha = Math.max(0.2, 1.0 - ball.z/8);
+      ctx.drawImage(sprites["ball_shadow"], -shadowSize - ofs*0.75 - 16, -shadowSize + ofs + 32, shadowSize*2, shadowSize*2);
+      ctx.globalAlpha = 1.0;
+
       ctx.rotate(ball.angle);
       size += 4;
       ctx.drawImage(sprites["ball"], -size, -size, size*2, size*2);
