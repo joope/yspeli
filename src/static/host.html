@@ -110,9 +110,9 @@
       src: ['sounds/crash_2.mp3'],
       sprite: {
         0: [100, 150],
-        1: [100, 150],
-        2: [100, 150],
-        3: [100, 150]
+        1: [90, 150],
+        2: [105, 150],
+        3: [95, 150]
       },
       volume: 0.5,
     })
@@ -183,7 +183,8 @@
         vz: 0.0,
         az: 0.0,
         angle: 0.0,
-        color: '#c2c2c2'
+        color: '#c2c2c2',
+        lastTouchedId: ''
       }
       arena = {
         left: arenaGap,
@@ -196,7 +197,7 @@
       arena.height = arena.bottom - arena.top;
       arena.center = new Vec2(arena.left + arena.width/2, arena.top + arena.height/2);
 
-      const goalHeight = arena.height * 0.2;
+      const goalHeight = arena.height * 0.3;
       const goalWidth = arenaGap;
 
       function Goal(args) {
@@ -381,8 +382,11 @@
             sounds.begin.play();
         } else if (gameState == STATE_GOAL) {
             console.log("Goal!");
+            if (score.red > score.blue) sounds.redleads.play();
+            if (score.red < score.blue) sounds.blueleads.play();
+            if (score.red === score.blue) sounds.tiedscore.play();
             sounds.goalMusic.play();
-            socket.emit("triggersound", {sound:"vuvuzela"});
+            //socket.emit("triggersound", {sound:"vuvuzela"});
         } else if (gameState == STATE_FACE_OFF) {
           initGamePositions();
           isGoal = false;
@@ -469,11 +473,11 @@
         // If position changed above we know we hit a border.
         if (newpos.x != player.pos.x) {
           player.vel.x *= -1.0 * rules.carSideBounce;
-          playSoundEffect('crash', Math.min(player.vel.magnitude() / 20), playerID);
+          playSoundEffect('crash', Math.abs(player.vel.x / 10), playerID);
         }
         if (newpos.y != player.pos.y) {
           player.vel.y *= -1.0 * rules.carSideBounce;
-          playSoundEffect('crash', Math.min(player.vel.magnitude() / 20), playerID);
+          playSoundEffect('crash', Math.abs(player.vel.y / 10), playerID);
         }
 
         newpos.copyTo(player.pos); // Actually update player position
@@ -575,14 +579,15 @@
 
         if ((distance <= threshold) && ball.z < 2) {
           var direction = Math.atan2(delta.x, delta.y);
-          var slowdown = 0.6;
+          var slowdown = 0.7;
           ball.vel.x = (Math.sin(direction) + slowdown * player.vel.x);
           ball.vel.y = (Math.cos(direction) + slowdown * player.vel.y);
-          ball.vz = ball.vz + 0.08*player.vel.magnitude() + 0.1;
+          ball.vz = ball.vz + 0.05*Math.min(player.vel.magnitude(), 2) + 0.2;
           player.pos.subtract(normal);
           player.bump = player.vel.magnitude()/30.0;
-          player.vel.multiply(-0.15);
+          player.vel.multiply(-0.10);
           playSoundEffect('kick', Math.min(player.vel.magnitude() / 4, 0.7), playerID);
+          ball.lastTouchedId = playerID;
         }
       })
       ball.vel = Vec2.multiply(ball.vel, rules.ballFriction);
@@ -631,24 +636,23 @@
         if (ballInBlueGoal()) {
           score.red = score.red + 1;
           isGoal = true;
-          updateMessage("RED SCORES", "red", 6000);
-          if (score.red > score.blue) {
-            sounds.redleads.play();
+          var scoredPlayer = players[ball.lastTouchedId];
+          if (scoredPlayer && scoredPlayer.team === 0) {
+            updateMessage(scoredPlayer.name + ' MAKES OWN SCORE', "blue", 6000);
+          } else {
+            updateMessage("RED SCORES", "red", 6000);
           }
-          if (score.red === score.blue) {
-            sounds.tiedscore.play();
-          }
+          
+
         }
         if (ballInRedGoal()){
           score.blue = score.blue + 1;
           isGoal = true;
-          updateMessage("BLUE SCORES", "blue", 6000);
-
-          if (score.blue > score.red) {
-            sounds.blueleads.play();
-          }
-          if (score.red === score.blue) {
-            sounds.tiedscore.play();
+          var scoredPlayer = players[ball.lastTouchedId];
+          if (scoredPlayer && scoredPlayer.team === 1) {
+            updateMessage(scoredPlayer.name + ' MAKES OWN SCORE', "red", 6000);
+          } else {
+            updateMessage("BLUE SCORES", "blue", 6000);
           }
         }
       }
@@ -794,7 +798,7 @@
 
     function drawBall() {
       let pos = worldToScreen(ball.pos);
-      var size = rules.ballSize + ball.z * 7;
+      var size = rules.ballSize + ball.z * 9;
       ctx.save();
       ctx.beginPath();
       ctx.strokeStyle = 'black';
