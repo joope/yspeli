@@ -123,7 +123,7 @@
     });
     sounds.begin = new Howl({
       src: ['sounds/letsgo.wav'],
-      volume: 0.5,
+      volume: 0.3,
     })
     sounds.redleads = new Howl({
       src: ['sounds/redleads.wav'],
@@ -133,6 +133,12 @@
       src: ['sounds/blueleads.wav'],
       volume: 0.5,
     })
+    sounds.kick = new Howl({
+      src: ['sounds/kick.mp3'],
+      volume: 0.5,
+    })
+
+    var lastSoundPlayed = performance.now();
 
     // Game settings -->
     let isGoal = false;
@@ -352,7 +358,7 @@
         } else if (gameState == STATE_GAME) {
             updateMessage("PLAY", "GREEN", 3000);
             initGamePositions();
-            sounds.whistle.play();
+            sounds.begin.play();
         } else if (gameState == STATE_GOAL) {
             console.log("Goal!");
             sounds.goalMusic.play();
@@ -365,7 +371,7 @@
         // Actions on specific state transitions
 
         if (oldGameState == STATE_FACE_OFF && gameState == STATE_GAME) {
-            music.stop();
+            sounds.goalMusic.stop();
             canStart = false;
         }
       }
@@ -551,7 +557,7 @@
           player.pos.subtract(normal);
           player.bump = player.vel.magnitude()/30.0;
           player.vel.multiply(-0.15);
-          socket.emit('crash', playerID);
+          playSoundEffect('kick', Math.min(player.vel.magnitude() / 4, 0.7), playerID);
         }
       })
       ball.vel = Vec2.multiply(ball.vel, rules.ballFriction);
@@ -899,6 +905,15 @@ function updateSkidmarks() {
 
     function ballInRedGoal() {
       return (isGoal && ball.pos.x >= arena.right + rules.ballSize) || ball.pos.y >= goals[1].pos.y && ball.pos.y <= goals[1].pos.y + goals[1].height && ball.pos.x >= arena.right + rules.ballSize;
+    }
+
+    function playSoundEffect(id, volume, playerID) {
+      if (performance.now() - lastSoundPlayed > 50) {
+        sounds[id].play();
+        sounds[id].volume(volume);
+        lastSoundPlayed = performance.now();
+        socket.emit('crash', playerID);
+      }
     }
 
     function reconnect(){
