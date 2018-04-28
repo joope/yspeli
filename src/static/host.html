@@ -120,6 +120,15 @@
       src: ['sounds/tiedscore.wav'],
       volume: 0.5,
     })
+    sounds.crowdBackground = new Howl({
+      src: ['sounds/crowd_background.mp3'],
+      volume: 0.2,
+      loop: true,
+    })
+    sounds.crowdBackground = new Howl({
+      src: ['sounds/crowd_cheer.mp3'],
+      volume: 0.5,
+    })
 
     var lastSoundPlayed = {
       crash: performance.now(),
@@ -312,6 +321,8 @@
             yield state;
           }
         }
+
+        sounds.crowdBackground.play();
 
         while (!canStart) {
           yield STATE_WARMUP;
