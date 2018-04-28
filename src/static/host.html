@@ -196,13 +196,26 @@
         this.fillStyle = args.fillStyle;
         this.topCorner = args.topCorner;
         this.bottomCorner = args.bottomCorner;
+        this.spritename = args.spritename;
       }
 
       Goal.prototype.draw = function() {
         let pos = worldToScreen(this.pos);
-        ctx.fillStyle = this.fillStyle;
-        ctx.strokeStyle = this.strokeStyle;
-        ctx.fillRect(pos.x, pos.y, this.width, this.height);
+
+        var net = sprites[this.spritename];
+        var h = (this.width / net.width) * net.height;
+        var drawn = 10;
+        var i =0;
+        var h2 = this.height - 10;
+        while (h2 >= drawn) {
+          var hmin = Math.min(h, h2 - drawn+1);
+          ctx.drawImage(net,
+              0, 0, net.width, hmin,
+              pos.x, pos.y + drawn,
+              this.width, hmin);
+          drawn += hmin;
+          //console.log("i,", i, hmin);
+        }
         ctx.stroke();
       }
 
@@ -218,6 +231,7 @@
           lineWidth: "3",
           topCorner: new Vec2(arena.left, arena.height * 0.5 - goalHeight/2),
           bottomCorner: new Vec2(arena.left, arena.height * 0.5 + goalHeight/2),
+          spritename: "blue_net",
         }),
         new Goal({
           pos: new Vec2(arena.right, arena.height * 0.5 - goalHeight/2),
@@ -228,6 +242,7 @@
           lineWidth: "3",
           topCorner: new Vec2(arena.right, arena.height * 0.5 - goalHeight/2),
           bottomCorner: new Vec2(arena.right, arena.height * 0.5 + goalHeight/2),
+          spritename: "red_net",
         })
       ]
     }
@@ -264,6 +279,12 @@
     assetLoads.push(getImage("/bluecar.png", "car_blue").then(saveSprite));
     assetLoads.push(getImage("/ball.png", "ball").then(saveSprite));
     assetLoads.push(getImage("/grass.png", "grass").then(saveSprite));
+    assetLoads.push(getImage("/red_net.png", "red_net").then(saveSprite));
+    assetLoads.push(getImage("/blue_net.png", "blue_net").then(saveSprite).then(
+      function (sprite) {
+      }
+    ));
+    assetLoads.push(getImage("/goal_end.png", "goal_end").then(saveSprite));
 
     var bgCanvas = document.createElement("canvas");
 
@@ -721,7 +742,8 @@
         // Background
 
         ctx.fillStyle = 'rgb(120, 205, 50)';
-        ctx.fillRect(pos.x, pos.y, arena.width, arena.height);
+        //ctx.fillRect(pos.x, pos.y, arena.width, arena.height);
+        ctx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
         ctx.lineWidth = 2;
 
         // Center line
@@ -747,10 +769,25 @@
         }
         }
 
-        // Draw grey "goals"
-        ctx.fillStyle = 'rgb(100, 100, 100)';
-        ctx.fillRect(0,0,goals[0].width, canvas.height);
-        ctx.fillRect(canvas.width - goals[0].width,0, goals[0].width, canvas.height);
+        // Draw goals
+
+        //ctx.fillStyle = 'rgb(100, 100, 100)';
+        //ctx.fillRect(0,0,goals[0].width, canvas.height);
+        //ctx.fillRect(canvas.width - goals[0].width,0, goals[0].width, canvas.height);
+        var end = sprites["goal_end"];
+
+        for (var i=0;i<2;i++) {
+          var sign = 1 - 2*i;
+          ctx.save();
+          ctx.translate(goals[i].pos.x, goals[i].pos.y);
+          ctx.scale(sign, 1);
+          ctx.drawImage(end, 0, 0, sign*goals[i].width, end.height);
+          ctx.translate(0, goals[i].height - end.height);
+          ctx.scale(1, -1);
+          ctx.drawImage(end, 0,0, sign*goals[i].width, -end.height);
+          ctx.restore();
+        }
+        //ctx.drawImage(end, goals[0].pos.x, goals[0].pos.y + goals[0].height - end.height, goals[0].width, -end.height);
     }
 
     function drawPlayers() {
