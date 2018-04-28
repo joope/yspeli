@@ -129,7 +129,7 @@
       ballSize: 50,
       stiffness: 0.98,    // car sideways motion damping
       turnSpeed: 0.04,    // max radians per physics step
-      skidmarkLimit: 0.05,// higher limit means more tire tracks left
+      skidmarkLimit: 0.08,// higher limit means more tire tracks left
       skidSpeedBonus: 3.0,
       carSideBounce: 0.8,
     }
@@ -710,7 +710,7 @@
             ctx.beginPath();
             ctx.lineWidth = 7;
             ctx.fillStyle = 'grey';
-            ctx.strokeStyle = 'rgba(100, 50, 20, 0.12)';
+            ctx.strokeStyle = 'rgba(100, 50, 20, 0.11)';
             for (var x of [-1, 1]) {
                 for (var y of [-1, 1]) {
                     var ofs = new Vec2(y*40, x*30);
