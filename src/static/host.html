@@ -112,15 +112,27 @@
 
     var flashTimer = null;
 
-    var music = new Howl({
-      src: ['/motiv_music_1.wav'],
+    var sounds = {};
+    sounds.goalMusic = new Howl({
+      src: ['sounds/motiv_music_1.wav'],
+      volume: 0.5,
+    })
+    sounds.whistle = new Howl({
+      src: ['sounds/whistle.wav'],
       volume: 0.5,
     });
-
-    var whistle = new Howl({
-      src: ['/whistle.wav'],
+    sounds.begin = new Howl({
+      src: ['sounds/letsgo.wav'],
       volume: 0.5,
-    });
+    })
+    sounds.redleads = new Howl({
+      src: ['sounds/redleads.wav'],
+      volume: 0.5,
+    })
+    sounds.blueleads = new Howl({
+      src: ['sounds/blueleads.wav'],
+      volume: 0.5,
+    })
 
     // Game settings -->
     let isGoal = false;
@@ -340,10 +352,10 @@
         } else if (gameState == STATE_GAME) {
             updateMessage("PLAY", "GREEN", 3000);
             initGamePositions();
-            whistle.play();
+            sounds.whistle.play();
         } else if (gameState == STATE_GOAL) {
             console.log("Goal!");
-            music.play();
+            sounds.goalMusic.play();
             socket.emit("triggersound", {sound:"vuvuzela"});
         } else if (gameState == STATE_FACE_OFF) {
           initGamePositions();
