@@ -4,15 +4,17 @@
     <style>
       #flashmessage {
         font-family: sans-serif;
-        font-size: 128px;
+        font-size: 12px;
         margin: 0;
         position: absolute;
         top: 25%;
         left: 50%;
+        width: 80%;
         text-align: center;
         margin-left: auto;
         margin-right: auto;
-        transform: translate(-50%, -50%)
+        transform: translate(-50%, -50%);
+        transition: font-size 1s;
       }
       @keyframes fadein {
         from
@@ -26,8 +28,9 @@
       }
       #startbutton {
         font-size: 500%;
-        font-family: sans-seritf;
         background: green;
+        color: white;
+        border-radius: 15px;
         text-align: center;
         margin: 0;
         margin-left: auto;
@@ -428,13 +431,13 @@
           score.red = 0;
           score.blue = 0;
         } else if (gameState == STATE_WARMUP) {
-            updateMessage("WARMUP", "BLACK", 30000);
+            updateMessage("EM😍JILEAGUE", "rgb(255, 218, 70)", 30000);
             setTimer();
             sounds.crowdBackground2.fade(0.5, 0.05, 10000);
         } else if (gameState == STATE_TEAM_SELECT) {
             updateMessage("CHOOSE YOUR TEAM", "RED", 10000);
         } else if (gameState == STATE_GAME) {
-            updateMessage("PLAY", "GREEN", 3000);
+            updateMessage("PLAY!", "GREEN", 3000);
             //initGamePositions();
             sounds.whistle.play();
         } else if (gameState == STATE_GOAL) {
@@ -995,6 +998,8 @@
       var newmsg = document.getElementById('flashmessage');
       newmsg.innerHTML = text;
       newmsg.style.color = style;
+      newmsg.style.opacity = 1.0;
+      newmsg.style['font-size'] = '128px';
       // newmsg.style.animation = "fadein 0.5s"
       if (flashTimer != null) {
         clearInterval(flashTimer);
@@ -1004,8 +1009,8 @@
 
     function clearMessage() {
         var message = document.getElementById('flashmessage');
-        message.innerHTML = "";
-        flashmessage.style.color = "black";
+        message.style.opacity = 0.0;
+        message.style['font-size'] = '12px';
         // flashmessage.style.animation = "";
         clearInterval(flashTimer);
         flashTimer = null;

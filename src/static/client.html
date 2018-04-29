@@ -17,7 +17,7 @@
       }
       #config {
         position: absolute;
-        padding: 40% 10px 0;
+        padding: 30vh 10px 0;
         top: 0;
         left: 0;
         right: 0;
@@ -47,7 +47,7 @@
   <body>
     <form id="config">
       <input id="name" type="text" placeholder="Player name" maxlength="10" autofocus/>
-      <input id="emoji" type="text" placeholder="<emoji>" maxlength="2"/>
+      <input id="emoji" type="text" placeholder="emoji" maxlength="2"/>
       <button type="submit">Join game</button>
     </form>
     <canvas id="touchArea"></canvas>
@@ -86,7 +86,7 @@
 
     // serverInput.value = 'AAAA';
     nameInput.value = window.localStorage.getItem('playerName') || '';
-    emojiInput.value = '';
+    //emojiInput.value = window.localStorage.getItem('playerEmoji') || '';
 
     // if (serverInput.value === 'AAAA' && nameInput.value && emojiInput.value) {
     //   setPlayerInfo(document.createEvent('event'))
@@ -97,6 +97,10 @@
       serverId = 'AAAA' //serverInput.value;
       name = nameInput.value;
       emoji = emojiInput.value;
+      var emojis = Array.from(emoji.split(/[\ufe00-\ufe0f]/).join(""));
+      if (emojis.length > 1) {
+        emoji = emojis[0];
+      }
 
       // window.localStorage.setItem('serverId', serverId)
       window.localStorage.setItem('playerName', name)
@@ -119,6 +123,21 @@
     socket.emit('register', {serverId: serverId, name: playerName});
     window.localStorage.setItem('playerName', playerName);
     */
+
+    function emojiCount(str) {
+      const joiner = "\u{200D}";
+      const split = str.split(joiner);
+      let count = 0;
+
+      for(const s of split){
+        //removing the variation selectors
+        const num = Array.from(s.split(/[\ufe00-\ufe0f]/).join("")).length;
+        count += num;
+      }
+
+      //assuming the joiners are used appropriately
+      return count / split.length;
+    }
 
     function reconnect(){
       console.log('reconnect')
