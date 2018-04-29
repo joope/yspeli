@@ -130,10 +130,15 @@
       volume: 0.00,
       loop: true,
     })
+    sounds.ohh = new Howl({
+      src: ['sounds/ohh.wav'],
+      volume: 0.8,
+    })
 
     var lastSoundPlayed = {
       crash: performance.now(),
       kick: performance.now(),
+      ohh: performance.now()
     }
 
     // Game settings -->
@@ -415,6 +420,7 @@
         } else if (gameState == STATE_WARMUP) {
             updateMessage("WARMUP", "BLACK", 30000);
             setTimer();
+            sounds.crowdBackground2.fade(0.5, 0.0, 10000);
         } else if (gameState == STATE_TEAM_SELECT) {
             updateMessage("CHOOSE YOUR TEAM", "RED", 10000);
         } else if (gameState == STATE_GAME) {
@@ -678,6 +684,7 @@
         if (poleHit && normal) {
           ball.vel = normal.multiply(normal.dot(ball.vel)).multiply(-2).add(ball.vel);
           ball.pos.add(normal);
+          if (gameState == STATE_GAME) playSoundEffect('ohh');
         }
 
       }
@@ -1094,9 +1101,11 @@
         if (id === 'crash') {
           var randomCrash = Math.floor(Math.random()*4);
           sounds[id].play('' + randomCrash);
-        } else {
+        } else if (id === 'kick'){
           sounds[id].play();
           sounds[id].rate(0.7);
+        } else {
+          sounds[id].play();
         }
         sounds[id].volume(volume);
         lastSoundPlayed[id] = performance.now();
