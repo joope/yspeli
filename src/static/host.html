@@ -357,6 +357,7 @@
           yield STATE_WARMUP;
         }
         yield* timeout(STATE_TEAM_SELECT, 10000);
+        yield* timeout(STATE_FACE_OFF, 1000);
         while (score.red < 3 && score.blue < 3) {
           yield STATE_GAME;
 
@@ -418,7 +419,7 @@
             updateMessage("CHOOSE YOUR TEAM", "RED", 10000);
         } else if (gameState == STATE_GAME) {
             updateMessage("PLAY", "GREEN", 3000);
-            initGamePositions();
+            //initGamePositions();
             sounds.whistle.play();
         } else if (gameState == STATE_GOAL) {
             console.log("Goal!");
