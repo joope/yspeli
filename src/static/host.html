@@ -135,10 +135,19 @@
       volume: 0.8,
     })
 
-    var lastSoundPlayed = {
-      crash: performance.now(),
-      kick: performance.now(),
-      ohh: performance.now()
+    var soundSprite = {
+      crash: {
+        lastPlayed: performance.now(),
+        repeatLimit: 100
+      },
+      kick: {
+        lastPlayed: performance.now(),
+        repeatLimit: 150
+      },
+      ohh: {
+        lastPlayed: performance.now(),
+        repeatLimit: 500
+      } 
     }
 
     // Game settings -->
@@ -151,7 +160,7 @@
       acceleration: 0.22,
       accbias: 0.0,
       playerSize: 40,
-      ballSize: 50,
+      ballSize: 45,
       stiffness: 0.98,    // car sideways motion damping
       turnSpeed: 0.04,    // max radians per physics step
       skidmarkLimit: 0.08,// higher limit means more tire tracks left
@@ -368,14 +377,16 @@
           if (isGoal) {
             yield* timeout(STATE_GOAL, 6000);
             console.log("Face off");
-            yield* timeout(STATE_FACE_OFF, 1000);
+            if (score.red < 3 && score.blue < 3) {
+              yield* timeout(STATE_FACE_OFF, 1000);
+            }
           }
         }
 
         console.log("Game ended", score);
         end = getTime();
 
-        timeout(STATE_PARTY, 5000);
+        yield* timeout(STATE_PARTY, 1000);
       }
     }
 
@@ -419,7 +430,7 @@
         } else if (gameState == STATE_WARMUP) {
             updateMessage("WARMUP", "BLACK", 30000);
             setTimer();
-            sounds.crowdBackground2.fade(0.5, 0.0, 10000);
+            sounds.crowdBackground2.fade(0.5, 0.05, 10000);
         } else if (gameState == STATE_TEAM_SELECT) {
             updateMessage("CHOOSE YOUR TEAM", "RED", 10000);
         } else if (gameState == STATE_GAME) {
@@ -468,6 +479,10 @@
 
       if (gameState === 'teamselect') {
         updatePlayerTeams(players);
+      } else if (gameState === 'goal') {
+        // cameraPos = players[ball.lastTouchedId] ? players[ball.lastTouchedId].pos : new Vec2(0,0);
+        // scale = Math.min(scale * 1.01, 4);
+        // ctx.scale(scale, scale);
       }
       sounds.crowdBackground2.volume(sounds.crowdBackground2-0.01);
       updateSkidmarks();
@@ -1096,7 +1111,7 @@
     }
 
     function playSoundEffect(id, volume, playerID) {
-      if (performance.now() - lastSoundPlayed[id] > 50) {
+      if (performance.now() - soundSprite[id].lastPlayed > soundSprite[id].repeatLimit) {
         if (id === 'crash') {
           var randomCrash = Math.floor(Math.random()*4);
           sounds[id].play('' + randomCrash);
@@ -1107,7 +1122,7 @@
           sounds[id].play();
         }
         sounds[id].volume(volume);
-        lastSoundPlayed[id] = performance.now();
+        soundSprite[id].lastPlayed = performance.now();
         socket.emit('crash', playerID);
       }
     }
