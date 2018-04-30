@@ -394,7 +394,7 @@
         while (!canStart) {
           yield STATE_WARMUP;
         }
-        yield* timeout(STATE_TEAM_SELECT, 10000);
+        yield* timeout(STATE_TEAM_SELECT, 15000);
         yield* timeout(STATE_FACE_OFF, 1000);
 
         var gameEndCriterion = function() {
