@@ -27,19 +27,27 @@
       input {
         display: block;
         width: 100%;
-        max-width: 500px;
+        max-width: 300px;
         padding: 10px;
         margin: 8px auto 0;
       }
       button {
         display: block;
         width: 100%;
-        max-width: 500px;
+        max-width: 300px;
         margin: 24px auto;
         border: none;
         background-color: yellowgreen;
         font-size: 18px;
         padding: 12px;
+      }
+      a {
+        display: block;
+        width: 200px;
+        margin: 0 auto;
+        text-align: center;
+        color: #ababab;
+        text-decoration: none;
       }
     </style>
     <script src="/socket.io/socket.io.js"></script>
@@ -47,9 +55,11 @@
   </head>
   <body>
     <form id="config">
-      <input id="name" type="text" placeholder="Player name" maxlength="10" autofocus/>
+      <input id="server" type="text" placeholder="Server ID" maxlength="4" autofocus />
+      <input id="name" type="text" placeholder="Player name" maxlength="10" />
       <input id="emoji" type="text" placeholder="emoji" maxlength="2"/>
       <button type="submit">Join Game</button>
+      <a href="/host">Or host a new game</a>
     </form>
     <canvas id="touchArea"></canvas>
   </body>
@@ -81,11 +91,11 @@
     var shutDownTimeout;
 
     document.getElementById("config").addEventListener("submit", setPlayerInfo,false);
-    // var serverInput = document.getElementById("server");
+    var serverInput = document.getElementById("server");
     var nameInput = document.getElementById("name");
     var emojiInput = document.getElementById("emoji");
 
-    // serverInput.value = 'AAAA';
+    serverInput.value = window.localStorage.getItem('serverId') || '';
     nameInput.value = window.localStorage.getItem('playerName') || '';
     //emojiInput.value = window.localStorage.getItem('playerEmoji') || '';
 
@@ -95,7 +105,7 @@
 
     function setPlayerInfo(event) {
       event.preventDefault();
-      serverId = 'AAAA' //serverInput.value;
+      serverId = serverInput.value //serverInput.value;
       name = nameInput.value;
       emoji = emojiInput.value;
       var emojis = Array.from(emoji.split(/[\ufe00-\ufe0f]/).join(""));
@@ -103,7 +113,7 @@
         emoji = emojis[0];
       }
 
-      // window.localStorage.setItem('serverId', serverId)
+      window.localStorage.setItem('serverId', serverId)
       window.localStorage.setItem('playerName', name)
       window.localStorage.setItem('playerEmoji', emoji)
 
