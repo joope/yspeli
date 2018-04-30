@@ -491,7 +491,11 @@
       sounds.crowdBackground2.volume(sounds.crowdBackground2-0.01);
       updateSkidmarks();
       ctx.drawImage(bgCanvas, 0, 0);
-      drawScoreboard();
+      if (gameState === 'warmup') {
+        drawRoomName();
+      } else {
+        drawScoreboard();
+      }
       drawPlayers();
       drawBall();
       drawGoals();
@@ -990,6 +994,14 @@
       let pos = new Vec2(arena.center.x - 100, arena.top + 100);
       worldPos = worldToScreen(pos);
       ctx.fillText(score.blue + " - " + score.red, worldPos.x, worldPos.y);
+    }
+
+    function drawRoomName() {
+      ctx.font = "32px sans-serif";
+      ctx.fillStyle = 'rgb(255, 218, 70)';
+      let pos = new Vec2(arena.center.x - 140, arena.top + 100);
+      worldPos = worldToScreen(pos);
+      ctx.fillText('Room ID: ' + ID, worldPos.x, worldPos.y);
     }
 
     function updateMessage(text, style, timeout) {
