@@ -23,6 +23,8 @@
         margin-right: auto;
         transform: translate(-50%, -50%);
         transition: font-size 1s;
+        text-shadow: -0px 2px 3px rgba(0,0,0,0.5);
+        /*letter-spacing: -0.1em;*/
       }
       @keyframes fadein {
         from
@@ -94,8 +96,16 @@
 
     var sounds = {};
     sounds.goalMusic = new Howl({
-      src: ['sounds/motiv_music_1.wav'],
+      src: ['sounds/motiv_music_1.mp3'],
       volume: 0.5,
+    })
+    sounds.teamselectMusic = new Howl({
+      src: ['sounds/teamselect.mp3'],
+      volume: 0.4,
+    })
+    sounds.partyMusic = new Howl({
+      src: ['sounds/party.mp3'],
+      volume: 0.4,
     })
     sounds.whistle = new Howl({
       src: ['sounds/whistle.wav'],
@@ -115,6 +125,10 @@
     })
     sounds.kick = new Howl({
       src: ['sounds/kick.mp3'],
+      volume: 0.5,
+    })
+    sounds.fail = new Howl({
+      src: ['sounds/trombone.mp3'],
       volume: 0.5,
     })
     sounds.crash = new Howl({
@@ -142,7 +156,7 @@
       loop: true,
     })
     sounds.ohh = new Howl({
-      src: ['sounds/ohh.wav'],
+      src: ['sounds/ohh.mp3'],
       volume: 0.8,
     })
 
@@ -380,12 +394,17 @@
         while (!canStart) {
           yield STATE_WARMUP;
         }
-        yield* timeout(STATE_TEAM_SELECT, 10000);
+        yield* timeout(STATE_TEAM_SELECT, 15000);
         yield* timeout(STATE_FACE_OFF, 1000);
-        while (score.red < 3 && score.blue < 3) {
+
+        var gameEndCriterion = function() {
+            return score.red >= 3 || score.blue >= 3;
+        }
+
+        while (!gameEndCriterion()) {
           yield STATE_GAME;
 
-          if (isGoal) {
+          if (isGoal && !gameEndCriterion()) {
             yield* timeout(STATE_GOAL, 6000);
             console.log("Face off");
             if (score.red < 3 && score.blue < 3) {
@@ -397,7 +416,7 @@
         console.log("Game ended", score);
         end = getTime();
 
-        yield* timeout(STATE_PARTY, 1000);
+        yield* timeout(STATE_PARTY, 14000);
       }
     }
 
@@ -443,8 +462,9 @@
             setTimer();
             sounds.crowdBackground2.fade(0.5, 0.05, 10000);
         } else if (gameState == STATE_TEAM_SELECT) {
-            updateMessage("CHOOSE YOUR TEAM", "RED", 10000);
+            updateMessage("CHOOSE YOUR TEAM", "RED", 15000);
             startButton.style.visibility = "hidden";
+            sounds.teamselectMusic.play();
         } else if (gameState == STATE_GAME) {
             updateMessage("PLAY!", "GREEN", 3000);
             //initGamePositions();
@@ -459,8 +479,15 @@
             //socket.emit("triggersound", {sound:"vuvuzela"});
         } else if (gameState == STATE_FACE_OFF) {
           initGamePositions();
-          sounds.begin.play();
           isGoal = false;
+        } else if (gameState == STATE_PARTY) {
+            sounds.goalMusic.stop();
+            sounds.partyMusic.play();
+            sounds.crowdBackground2.fade(1, 0.0, 12000);
+            var team = score.red > score.blue ? "RED" : "BLUE";
+            var color = score.red > score.blue ? "red" : "blue";
+
+            updateMessage(team + " TEAM WINS!", color, 10000);
         }
 
         // Actions on specific state transitions
@@ -468,6 +495,15 @@
         if (oldGameState == STATE_FACE_OFF && gameState == STATE_GAME) {
             sounds.goalMusic.stop();
             canStart = false;
+        }
+        if (oldGameState == STATE_TEAM_SELECT && gameState == STATE_FACE_OFF) {
+            sounds.begin.play();
+        }
+        if (oldGameState == STATE_TEAM_SELECT) {
+            sounds.teamselectMusic.stop();
+        }
+        if (oldGameState == STATE_PARTY) {
+            sounds.partyMusic.stop();
         }
       }
 
@@ -721,16 +757,18 @@
 
       // We allow goals only during STATE_GAME if no goals have been made
       if (gameState == STATE_GAME && !isGoal) {
+        var fail = false;
+
         if (ballInBlueGoal()) {
           score.red = score.red + 1;
           isGoal = true;
           var scoredPlayer = players[ball.lastTouchedId];
           if (scoredPlayer && scoredPlayer.team === 0) {
-            updateMessage(scoredPlayer.name + ' MAKES OWN GOAL', "blue", 6000);
+            updateMessage(scoredPlayer.name + ' SCORES OWN GOAL', "blue", 6000);
+            fail = true;
           } else {
             updateMessage("RED SCORES", "red", 6000);
           }
-          
 
         }
         if (ballInRedGoal()){
@@ -738,10 +776,15 @@
           isGoal = true;
           var scoredPlayer = players[ball.lastTouchedId];
           if (scoredPlayer && scoredPlayer.team === 1) {
-            updateMessage(scoredPlayer.name + ' MAKES OWN GOAL', "red", 6000);
+            updateMessage(scoredPlayer.name + ' SCORES OWN GOAL', "red", 6000);
+            fail = true;
           } else {
             updateMessage("BLUE SCORES", "blue", 6000);
           }
+        }
+
+        if (fail) {
+            sounds.fail.play();
         }
       } else if (gameState === STATE_WARMUP){
         if (ballInBlueGoal() || ballInRedGoal()) {
