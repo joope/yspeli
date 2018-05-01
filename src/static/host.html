@@ -185,7 +185,7 @@
       acceleration: 0.22,
       accbias: 0.0,
       playerSize: 40,
-      ballSize: 45,
+      ballSize: 35,
       stiffness: 0.98,    // car sideways motion damping
       turnSpeed: 0.04,    // max radians per physics step
       skidmarkLimit: 0.08,// higher limit means more tire tracks left
@@ -795,11 +795,27 @@
         }
       }
 
-      // TODO bounce ball inside the goal
+     
+       // Bounce from goal top
+      if (ball.pos.y < goals[0].topCorner.y + rules.ballSize && (ball.pos.x < goals[0].topCorner.x || ball.pos.x > goals[1].topCorner.x)) {
+        ball.vel.y = -ball.vel.y;
+        ball.pos.y = goals[0].topCorner.y + rules.ballSize;
+        console.log('bounce 1')
+      }
+      // Bounce from goal bottom
+      if (ball.pos.y > goals[0].bottomCorner.y - rules.ballSize && (ball.pos.x < goals[0].topCorner.x || ball.pos.x > goals[1].topCorner.x)) {
+        ball.vel.y = -ball.vel.y;
+        ball.pos.y = goals[0].bottomCorner.y - rules.ballSize;
+        console.log('bounce 2')
+      }
+      // Bounce goal end
+      if (ball.pos.x - rules.ballSize < 0 || ball.pos.x + rules.ballSize > canvas.width) {
+        ball.vel.x = -ball.vel.x;
+        ball.pos.x = Math.min(Math.max(0, ball.pos.x), canvas.width);
+      }
 
       if (!ballInCenterArea() && ball.pos.x < left_pad || !ballInCenterArea() && ball.pos.x > right_pad) {
         ball.vel.x = -ball.vel.x;
-        ball.col = 'green';
       }
       if (!isGoal && !ballInCenterArea()) {
         ball.pos.x = Math.max(left_pad, ball.pos.x);
