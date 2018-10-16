@@ -65,12 +65,12 @@
     </style>
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.0.9/howler.core.min.js"></script>
+    <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
   </head>
   <body>
     <form id="config">
       <input id="server" type="text" placeholder="Room ID" maxlength="4" autofocus oninput="toUpperCase()"/>
-      <input id="name" type="text" placeholder="Player name" maxlength="10" />
-      <input id="emoji" type="text" placeholder="emoji" maxlength="2"/>
+      <input id="name" type="text" placeholder="Nick name" maxlength="10" />
       <button type="submit">Join Game</button>
       <a href="/host">Or host a new game</a>
     </form>
@@ -78,6 +78,78 @@
   </body>
   <script>
     var socket = io();
+    var hostId = '';
+    pc = new RTCPeerConnection();
+    gameConnection = pc.createDataChannel("gameConnection", {
+      ordered: false,
+      maxRetransmits: 0,
+    });
+
+    function beginWebRTCHandshake(serverId='AAAA'){
+      socket.emit('registerClient', serverId, (hostId) => {
+        console.log('callback', hostId)
+        hostId = hostId;
+
+        pc.ondatachannel = (e) => {
+          console.log('data channel', e)
+          receiveChannel = e.channel;
+          receiveChannel.onmessage = handleHostMessages;
+          receiveChannel.onopen = handleGameConnectionStatusChange;
+          receiveChannel.onclose = () => console.log('connection closed');
+        };
+
+        pc.onicecandidate = e => {
+          if (e.candidate){
+            socket.emit('peerMessage', hostId, e)
+          }
+        } 
+        
+        pc.createOffer()
+          .then(offer => {
+            return pc.setLocalDescription(offer)
+          })
+          .then(() => socket.emit('peerMessage', hostId, pc.localDescription));
+      })
+    }
+
+    socket.on('peerMessage', (connectionID, data) => {
+      console.log(data);
+      if (data.candidate) {
+        pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+      } else if (data.sdp) {
+        pc.setRemoteDescription(new RTCSessionDescription(data))
+      } else {
+        console.log('unsupported peermessage', data);
+      }
+      
+    });
+
+    function handleGameConnectionStatusChange(e) {
+      gameConnection.send(JSON.stringify({
+        type: 'register',
+        payload: {
+          name: 'Newbie',
+          emoji: 'Ö'
+        }
+      }));
+    }
+
+    function handleHostMessages(message) {
+      console.log(message);
+      const { type, payload } = JSON.parse(message.data);
+      switch(type) {
+        case "connectionEstablished":
+          socket.disconnect();
+          setInterval(sendControl, 50);
+        case "playSound":
+          playSound(payload);
+        case "crash":
+          vibrate();
+      }
+    }
+
+    beginWebRTCHandshake('AAAA');
+
 
     var touchArea = document.getElementById("touchArea");
     var ctx = touchArea.getContext("2d");
@@ -90,52 +162,54 @@
       volume: 0.1,
       loop: true
     });
-
+    
     touchArea.width = window.innerWidth;
     touchArea.height = window.innerWidth;
-
+    
     var w_center = touchArea.width / 2;
     var y_center = touchArea.height / 2;
-
+    
     var velocity = 0;
     var direction = 0;
-
+    
     var controlInterval, serverId, name, emoji;
     var shutDownTimeout;
-
+    
     document.getElementById("config").addEventListener("submit", setPlayerInfo,false);
     var serverInput = document.getElementById("server");
     var nameInput = document.getElementById("name");
     var emojiInput = document.getElementById("emoji");
-
+    
     serverInput.value = window.localStorage.getItem('serverId') || '';
     nameInput.value = window.localStorage.getItem('playerName') || '';
     //emojiInput.value = window.localStorage.getItem('playerEmoji') || '';
-
+    
     // if (serverInput.value === 'AAAA' && nameInput.value && emojiInput.value) {
-    //   setPlayerInfo(document.createEvent('event'))
-    // }
-
-    function toUpperCase() {
-      serverInput.value = serverInput.value.toUpperCase();
+      //   setPlayerInfo(document.createEvent('event'))
+      // }
+      
+      function toUpperCase() {
+        serverInput.value = serverInput.value.toUpperCase();
     }
-
+    
     function setPlayerInfo(event) {
       event.preventDefault();
       serverId = serverInput.value //serverInput.value;
       name = nameInput.value;
-      emoji = emojiInput.value;
-      var emojis = Array.from(emoji.split(/[\ufe00-\ufe0f]/).join(""));
-      if (emojis.length > 1) {
-        emoji = emojis[0];
-      }
+      // emoji = emojiInput.value;
+      // var emojis = Array.from(emoji.split(/[\ufe00-\ufe0f]/).join(""));
+      // if (emojis.length > 1) {
+      //   emoji = emojis[0];
+      // }
 
       window.localStorage.setItem('serverId', serverId)
       window.localStorage.setItem('playerName', name)
-      window.localStorage.setItem('playerEmoji', emoji)
-
+      // window.localStorage.setItem('playerEmoji', emoji)
+      
       // TODO check values
-      socket.emit('register', {serverId: serverId, name: name, emoji: emoji});
+      // socket.emit('register', {serverId: serverId, name: name, emoji: emoji});
+      // beginWebRTCHandshake('AAAA');
+      
       document.getElementById("config").style.visibility = "hidden";
       document.getElementById("touchArea").style.visibility = "visible";
       engineStart.play();
@@ -152,7 +226,7 @@
     window.localStorage.setItem('playerName', playerName);
     */
 
-    function emojiCount(str) {
+   function emojiCount(str) {
       const joiner = "\u{200D}";
       const split = str.split(joiner);
       let count = 0;
@@ -162,7 +236,7 @@
         const num = Array.from(s.split(/[\ufe00-\ufe0f]/).join("")).length;
         count += num;
       }
-
+      
       //assuming the joiners are used appropriately
       return count / split.length;
     }
@@ -173,20 +247,28 @@
         socket.emit('register', {serverId: serverId, name: name, emoji: emoji});
       }, 1000)
     }
-
+    
     console.log(touchArea.width, touchArea.height);
-
+    
     ctx.fillStyle = 'rgb(70, 70, 70)';
     ctx.fillRect(0, 0, touchArea.width, touchArea.height);
 
     function sendControl() {
-      socket.emit('control', {v: velocity, d: direction});
+      // socket.emit('control', {v: velocity, d: direction});
+      gameConnection.send(JSON.stringify({
+        type: 'control',
+        payload: {
+          v: velocity, 
+          d: direction,
+        },
+      }));
     }
-
+    
+    
     function handlePosition(event) {
-
+      
       var surfaceSize = w_center - 32;
-
+      
       var touchX = touchArea.width / 2;
       var touchY = touchArea.height / 2;
 
@@ -275,7 +357,7 @@
     });
 
     function playSound(sound_event) {
-      console.log("playsound", sound_event, audio);
+      console.log("playsound", sound_event);
       // audio[sound_event["sound"]].play()
     }
 
@@ -293,11 +375,9 @@
       engine.fade(0.2, 0, 1000);
     }
 
-    setInterval(sendControl, 33);
-
     socket.on('playsound', playSound);
     socket.on('crash', vibrate);
-    socket.on('disconnect', reconnect);
+    // socket.on('disconnect', reconnect);
 
     // try {
     //   window.screen.lockOrientation('default');

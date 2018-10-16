@@ -66,6 +66,7 @@
     <script src="/socket.io/socket.io.js"></script>
     <script src="/vector2d.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.0.9/howler.core.min.js"></script>
+    <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
   </head>
   <body>
     <div id="wrapper">
@@ -77,8 +78,92 @@
   <script>
     var socket = io();
     var ID = '';
+
+    var peers = {};
+    var dataChannels = {};
+
+    socket.on('peerMessage', (connectionID, data) => {
+      console.log(connectionID, data);
+      // Handle new connections
+      if (!peers[connectionID]) {
+        pc = new RTCPeerConnection();
+        dataChannel = pc.createDataChannel("dataChannel");
+
+        pc.ondatachannel = (e) => {
+          console.log('data channel', e)
+          receiveChannel = e.channel;
+          receiveChannel.onmessage = handleGameInput(connectionID);
+          receiveChannel.onopen = handledataChannelStatusChange;
+          receiveChannel.onclose = handledataChannelStatusChange;
+        };
+
+        pc.onicecandidate = e => {
+          if (e.candidate){
+            socket.emit('peerMessage', connectionID, e)
+          }
+        }
+        peers[connectionID] = pc;
+        dataChannels[connectionID] = dataChannel;
+      }
+      
+      if (data.candidate) {
+        peers[connectionID].addIceCandidate(data.candidate);
+      } else if (data.sdp) {
+        console.log(data);
+        peers[connectionID]
+          .setRemoteDescription(new RTCSessionDescription(data))
+          .then(() => peers[connectionID].createAnswer())
+          .then(answer => peers[connectionID].setLocalDescription(answer))
+          .then(() => socket.emit('peerMessage', connectionID, peers[connectionID].localDescription));
+      } else {
+        console.log('unsupported peermessage', data);
+      }
+      
+    });
+
+    function handledataChannelStatusChange(e) {
+      console.log(e)
+
+    }
+
+    function handleGameInput(playerID) {
+      return (message) => {
+        const {type, payload} = JSON.parse(message.data);
+        
+        // console.log(playerID, type, payload);
+        switch (type) {
+          case 'register':
+            registerPlayer(playerID, payload);
+            messagePlayer(playerID, 'connectionEstablished');
+            break;
+          case 'control':
+            updatePlayerData(playerID, payload);
+            break;
+        }
+      }
+    }
+
+    function messagePlayer(playerID, type, payload) {
+      dataChannels[playerID].send(JSON.stringify({
+        type,
+        payload,
+      }));
+    }
+    
+
     socket.emit('registerServer', function(serverId){
       ID = serverId;
+    });
+
+    socket.on('peerMessage', (connectionID, data) => {
+      if (data.candidate) {
+        peers[connectionID].addIceCandidate(new RTCIceCandidate(data.candidate));
+      } else if (data.sdp) {
+        peers[connectionID].setRemoteDescription(new RTCSessionDescription(data))
+      } else {
+        console.log('unsupported peermessage', data);
+      }
+      
     });
 
     var canvas = document.getElementById("game");
@@ -1111,11 +1196,11 @@
       }
     }
 
-    function registerPlayer(data) {
+    function registerPlayer(playerID, data) {
       console.log(data);
-      if (!players[data.playerID]){
+      if (!players[playerID]){
         var pos = getRandomCoordinates();
-        players[data.playerID] = {
+        players[playerID] = {
           pos: pos,
           oldPos: pos.clone(),
           v: 0,
@@ -1130,15 +1215,13 @@
           bump: 0
         }
       } else {
-        players[data.playerID].name = data.name;
+        players[playerID].name = data.name;
       }
     }
 
-    function updatePlayerData(control_event) {
-      if (!players[control_event.id]) {
-        return;
-      }
-      var player = players[control_event.id];
+    function updatePlayerData(playerID, control_event) {
+      console.log('update:', control_event)
+      var player = players[playerID];
       player.v = updateV(player.v, Math.max(0.0, Math.min(1.0, control_event.v)));
 
       player.targetDir = control_event.d;

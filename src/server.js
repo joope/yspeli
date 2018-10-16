@@ -15,54 +15,60 @@ app.get('/host', function(req, res){
 });
 
 let serverIds = {};
-let players = {};
+let clients = {};
 
 io.on('connection', function(socket){
-  var playerID = socket.id;
-  console.log(playerID + ' connected');
+
+  var connectionID = socket.id;
+
+  socket.on('registerServer', function(callback){ 
+    console.log('register server', connectionID)
+    var serverId = 'AAAA';
+    // if (Object.keys(serverIds).length > 0) {
+    //   var serverId = randomString(4);
+    // }
+    serverIds[serverId] = connectionID;
+    callback(serverId);
+  });
+
+  socket.on('registerClient', function(serverId, callback) {
+    console.log('register client', connectionID)
+    callback(serverIds[serverId]);
+  });
+  
+  socket.on('peerMessage', function(targetID, data) {
+    console.log('peerMessage', connectionID, targetID, data)
+    io.to(targetID).emit('peerMessage', connectionID, data);
+  });
+
   socket.on('control', function(control) {
-    if (!players[playerID]) return;
-    serverId = getServerId(playerID);
+    if (!clients[connectionID]) return;
+    serverId = getServerId(connectionID);
     io.to(serverId).emit('control_event', {
-      id : playerID,
+      id : connectionID,
       v : control.v,
       d: control.d
     })
-  })
-  socket.on('register', function(data) {
-    players[playerID] = {name: data.name, serverId: data.serverId, emoji: data.emoji};
-    io.to(serverIds[data.serverId]).emit('register', {
-      playerID: playerID, name: data.name, emoji: data.emoji
-    });
-    console.log(serverIds);
-    console.log(players);
-  });
-  socket.on('registerServer', function(callback){ 
-    var serverId = 'AAAA';
-    if (Object.keys(serverIds).length > 0) {
-        var serverId = randomString(4);
-    }
-    serverIds[serverId] = socket.id;
-    callback(serverId);
   })
   // Pass the triggersound message (sent by host) to all clients
   socket.on('triggersound', function(msg) {
     socket.broadcast.emit('playsound', msg);
   });
-  socket.on('crash', function(playerID) {
-    io.to(playerID).emit('crash');
+  socket.on('crash', function(connectionID) {
+    io.to(connectionID).emit('crash');
   })
   socket.on('disconnect', function(){
-    if (serverIds[playerID]) {
-        delete serverIds.playerID;
+    console.log(connectionID, 'disconnected');
+    if (serverIds[connectionID]) {
+        delete serverIds.connectionID;
         return;
     }
-    io.to(getServerId(playerID)).emit('player_disconnect', playerID);
+    // io.to(getServerId(connectionID)).emit('player_disconnect', connectionID);
   });
 });
 
-function getServerId(playerID) {
-    var serverId = players[playerID] ? players[playerID].serverId : 'AAAA';
+function getServerId(connectionID) {
+    var serverId = clients[connectionID] ? clients[connectionID].serverId : 'AAAA';
     return serverIds[serverId];
 }
 
