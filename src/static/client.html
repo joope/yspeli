@@ -153,7 +153,7 @@
         case "connectionEstablished":
           socket.disconnect();
           console.log('setInterval')
-          controlInterval = setInterval(sendControl, 15);
+          controlInterval = setInterval(sendControl, 30);
           break;
         case "keepalive":
           console.log('keepalive');
@@ -253,7 +253,7 @@
       
       // TODO check values
       // socket.emit('register', {serverId: serverId, name: name, emoji: emoji});
-      registerPlayer();
+      beginWebRTCHandshake();
       
       document.getElementById("config").style.visibility = "hidden";
       document.getElementById("touchArea").style.visibility = "visible";
