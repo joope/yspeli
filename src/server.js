@@ -14,63 +14,50 @@ app.get('/host', function(req, res){
   res.sendFile(__dirname + '/static/host.html');
 });
 
-let serverIds = {};
-let clients = {};
+const serverIds = {};
+const serverConnectionIds = {};
+
+let connections = 0;
 
 io.on('connection', function(socket){
-
   var connectionID = socket.id;
+  connections++;
+  console.log(connections);
 
   socket.on('registerServer', function(callback){ 
     console.log('register server', connectionID)
     var serverId = 'AAAA';
-    // if (Object.keys(serverIds).length > 0) {
-    //   var serverId = randomString(4);
-    // }
+    if (Object.keys(serverIds).length > 0) {
+      var serverId = randomString(4);
+    }
     serverIds[serverId] = connectionID;
+    serverConnectionIds[connectionID] = serverId;
     callback(serverId);
   });
 
   socket.on('registerClient', function(serverId, callback) {
-    console.log('register client', connectionID)
-    callback(serverIds[serverId]);
+    console.log('register client', connectionID, serverId)
+    if (serverIds[serverId]){
+      callback(serverIds[serverId]);
+    } else {
+      callback(null);
+    }
   });
   
   socket.on('peerMessage', function(targetID, data) {
-    console.log('peerMessage', connectionID, targetID, data)
     io.to(targetID).emit('peerMessage', connectionID, data);
   });
 
-  socket.on('control', function(control) {
-    if (!clients[connectionID]) return;
-    serverId = getServerId(connectionID);
-    io.to(serverId).emit('control_event', {
-      id : connectionID,
-      v : control.v,
-      d: control.d
-    })
-  })
-  // Pass the triggersound message (sent by host) to all clients
-  socket.on('triggersound', function(msg) {
-    socket.broadcast.emit('playsound', msg);
-  });
-  socket.on('crash', function(connectionID) {
-    io.to(connectionID).emit('crash');
-  })
   socket.on('disconnect', function(){
     console.log(connectionID, 'disconnected');
-    if (serverIds[connectionID]) {
-        delete serverIds.connectionID;
-        return;
-    }
-    // io.to(getServerId(connectionID)).emit('player_disconnect', connectionID);
+
+    delete serverIds[serverConnectionIds[connectionID]];
+    delete serverConnectionIds[connectionID];
+
+    connections--;
+    console.log(connections);
   });
 });
-
-function getServerId(connectionID) {
-    var serverId = clients[connectionID] ? clients[connectionID].serverId : 'AAAA';
-    return serverIds[serverId];
-}
 
 function randomString(length) {
     var chars = 'ABCDEFGHIJKLMNPQRSTUVWXYZ';

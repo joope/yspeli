@@ -79,22 +79,45 @@
   <script>
     var socket = io();
     var hostId = '';
-    pc = new RTCPeerConnection();
-    gameConnection = pc.createDataChannel("gameConnection", {
-      ordered: false,
-      maxRetransmits: 0,
-    });
+    var name = '';
+    var emoji = '';
+    var keepalive;
+    var controlInterval;
 
-    function beginWebRTCHandshake(serverId='AAAA'){
+    var config = {
+      iceServers: [{
+          urls: [
+            "stun:stun.l.google.com:19302",
+            "stun:stun1.l.google.com:19302",
+            "stun:stun2.l.google.com:19302",
+            "stun:stun3.l.google.com:19302",
+          ],
+      }
+      ]
+    }
+
+    
+
+    function beginWebRTCHandshake(){
+      serverId = hostId || 'AAAA';
+      console.log('begin handshake')
+      pc = new RTCPeerConnection(config);
+      if (!socket.connected) socket.connect();
+
       socket.emit('registerClient', serverId, (hostId) => {
         console.log('callback', hostId)
         hostId = hostId;
+
+        gameConnection = pc.createDataChannel("gameConnection", {
+          ordered: false,
+          maxRetransmits: 0,
+        });
 
         pc.ondatachannel = (e) => {
           console.log('data channel', e)
           receiveChannel = e.channel;
           receiveChannel.onmessage = handleHostMessages;
-          receiveChannel.onopen = handleGameConnectionStatusChange;
+          receiveChannel.onopen = registerPlayer;
           receiveChannel.onclose = () => console.log('connection closed');
         };
 
@@ -109,29 +132,18 @@
             return pc.setLocalDescription(offer)
           })
           .then(() => socket.emit('peerMessage', hostId, pc.localDescription));
-      })
-    }
+      });
 
-    socket.on('peerMessage', (connectionID, data) => {
-      console.log(data);
-      if (data.candidate) {
-        pc.addIceCandidate(new RTCIceCandidate(data.candidate));
-      } else if (data.sdp) {
-        pc.setRemoteDescription(new RTCSessionDescription(data))
-      } else {
-        console.log('unsupported peermessage', data);
-      }
-      
-    });
-
-    function handleGameConnectionStatusChange(e) {
-      gameConnection.send(JSON.stringify({
-        type: 'register',
-        payload: {
-          name: 'Newbie',
-          emoji: 'Ö'
+      socket.on('peerMessage', (connectionID, data) => {
+        console.log(data);
+        if (data.candidate) {
+          pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+        } else if (data.sdp) {
+          pc.setRemoteDescription(new RTCSessionDescription(data))
+        } else {
+          console.log('unsupported peermessage', data);
         }
-      }));
+      });
     }
 
     function handleHostMessages(message) {
@@ -140,16 +152,42 @@
       switch(type) {
         case "connectionEstablished":
           socket.disconnect();
-          setInterval(sendControl, 50);
+          console.log('setInterval')
+          controlInterval = setInterval(sendControl, 15);
+          break;
+        case "keepalive":
+          console.log('keepalive');
+          if (keepalive) clearTimeout(keepalive);
+          keepalive = setTimeout(reconnectToHost, 3000)
+          break;
         case "playSound":
           playSound(payload);
+          break;
         case "crash":
           vibrate();
+          break;
+        }
       }
+      
+    function registerPlayer(e) {
+      gameConnection.send(JSON.stringify({
+        type: 'register',
+        payload: {
+          name: name,
+          emoji: ''
+        }
+      }));
     }
-
-    beginWebRTCHandshake('AAAA');
-
+      
+    function reconnectToHost() {
+      console.log('reconnect')
+      clearInterval(controlInterval);
+      beginWebRTCHandshake();
+      // pc.close();
+      // setTimeout(() => {
+      //   beginWebRTCHandshake();
+      // }, 1000)
+    }
 
     var touchArea = document.getElementById("touchArea");
     var ctx = touchArea.getContext("2d");
@@ -172,29 +210,36 @@
     var velocity = 0;
     var direction = 0;
     
-    var controlInterval, serverId, name, emoji;
+    var serverId, name, emoji;
     var shutDownTimeout;
     
     document.getElementById("config").addEventListener("submit", setPlayerInfo,false);
     var serverInput = document.getElementById("server");
     var nameInput = document.getElementById("name");
     var emojiInput = document.getElementById("emoji");
-    
+
     serverInput.value = window.localStorage.getItem('serverId') || '';
     nameInput.value = window.localStorage.getItem('playerName') || '';
+
+    hostId = serverInput.value;
+    name = nameInput.value;
+
+    beginWebRTCHandshake();
+
+    
     //emojiInput.value = window.localStorage.getItem('playerEmoji') || '';
     
     // if (serverInput.value === 'AAAA' && nameInput.value && emojiInput.value) {
       //   setPlayerInfo(document.createEvent('event'))
       // }
       
-      function toUpperCase() {
+    function toUpperCase() {
         serverInput.value = serverInput.value.toUpperCase();
     }
-    
+
     function setPlayerInfo(event) {
       event.preventDefault();
-      serverId = serverInput.value //serverInput.value;
+      hostId = serverInput.value //serverInput.value;
       name = nameInput.value;
       // emoji = emojiInput.value;
       // var emojis = Array.from(emoji.split(/[\ufe00-\ufe0f]/).join(""));
@@ -202,13 +247,13 @@
       //   emoji = emojis[0];
       // }
 
-      window.localStorage.setItem('serverId', serverId)
+      window.localStorage.setItem('serverId', hostId)
       window.localStorage.setItem('playerName', name)
       // window.localStorage.setItem('playerEmoji', emoji)
       
       // TODO check values
       // socket.emit('register', {serverId: serverId, name: name, emoji: emoji});
-      // beginWebRTCHandshake('AAAA');
+      registerPlayer();
       
       document.getElementById("config").style.visibility = "hidden";
       document.getElementById("touchArea").style.visibility = "visible";
@@ -217,14 +262,7 @@
       vibrate();
       //shutdownTimeout = window.setTimeout(shutdownEngine, 5000);
     }
-    /* 
-    var serverId = window.localStorage.getItem('serverId') || 'AAAA';
-    var playerName = window.localStorage.getItem('playerName') || window.prompt('Name enter');
-    //window.localStorage.setItem('serverId', serverId);
-    if (!playerName) playerName = 'Anonyymi';
-    socket.emit('register', {serverId: serverId, name: playerName});
-    window.localStorage.setItem('playerName', playerName);
-    */
+
 
    function emojiCount(str) {
       const joiner = "\u{200D}";
@@ -239,13 +277,6 @@
       
       //assuming the joiners are used appropriately
       return count / split.length;
-    }
-
-    function reconnect(){
-      console.log('reconnect')
-      window.setTimeout(function(){
-        socket.emit('register', {serverId: serverId, name: name, emoji: emoji});
-      }, 1000)
     }
     
     console.log(touchArea.width, touchArea.height);
@@ -374,17 +405,6 @@
     function shutdownEngine() {
       engine.fade(0.2, 0, 1000);
     }
-
-    socket.on('playsound', playSound);
-    socket.on('crash', vibrate);
-    // socket.on('disconnect', reconnect);
-
-    // try {
-    //   window.screen.lockOrientation('default');
-    // } catch (err) {
-    //   console.log('error :(')
-    // }
-    
 
   </script>
 </html>

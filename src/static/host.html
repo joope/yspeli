@@ -82,12 +82,26 @@
     var peers = {};
     var dataChannels = {};
 
+    var config = {
+      iceServers: [{
+          urls: [
+            "stun:stun.l.google.com:19302",
+            "stun:stun1.l.google.com:19302",
+            "stun:stun2.l.google.com:19302",
+            "stun:stun3.l.google.com:19302",
+          ],
+      }]
+    }
+
     socket.on('peerMessage', (connectionID, data) => {
       console.log(connectionID, data);
       // Handle new connections
       if (!peers[connectionID]) {
-        pc = new RTCPeerConnection();
-        dataChannel = pc.createDataChannel("dataChannel");
+        pc = new RTCPeerConnection(config);
+        dataChannel = pc.createDataChannel("dataChannel", {
+          ordered: false,
+          maxRetransmits: 2,
+        });
 
         pc.ondatachannel = (e) => {
           console.log('data channel', e)
@@ -123,7 +137,6 @@
 
     function handledataChannelStatusChange(e) {
       console.log(e)
-
     }
 
     function handleGameInput(playerID) {
@@ -446,6 +459,7 @@
     var startButton = document.getElementById('startbutton');
 
     function startGame(bool) {
+      // socket.disconnect();
       canStart = bool;
       startButton.style.visibility = "hidden";
     }
@@ -545,9 +559,12 @@
           score.blue = 0;
         } else if (gameState == STATE_WARMUP) {
             updateMessage("EM😍JILEAGUE", "rgb(255, 218, 70)", 60000);
-            setTimer();
+
+            reconnect();
+            // setTimer();
             sounds.crowdBackground2.fade(0.5, 0.05, 10000);
         } else if (gameState == STATE_TEAM_SELECT) {
+            socket.disconnect();
             updateMessage("CHOOSE YOUR TEAM", "#e0e0e0", 15000);
             startButton.style.visibility = "hidden";
             sounds.teamselectMusic.play();
@@ -716,8 +733,8 @@
         Vec2.multiply_inplace(diff, 0.5*(threshold - dist)+5, temp);
         pl1.pos.add(temp);
         pl2.pos.subtract(temp);
-        socket.emit('crash', i);
-        socket.emit('crash', j);
+        messagePlayer(keys[i], 'crash');
+        messagePlayer(keys[j], 'crash');
 
 
         // https://www.gamasutra.com/view/feature/131424/pool_hall_lessons_fast_accurate_.php?page=3
@@ -1217,10 +1234,12 @@
       } else {
         players[playerID].name = data.name;
       }
+      players[playerID].keepalive = setInterval(() => {
+        messagePlayer(playerID, 'keepalive');
+      }, 1000)
     }
 
     function updatePlayerData(playerID, control_event) {
-      console.log('update:', control_event)
       var player = players[playerID];
       player.v = updateV(player.v, Math.max(0.0, Math.min(1.0, control_event.v)));
 
@@ -1291,15 +1310,18 @@
         }
         sounds[id].volume(volume);
         soundSprite[id].lastPlayed = performance.now();
-        socket.emit('crash', playerID);
+        messagePlayer(playerID, 'crash');
       }
     }
 
     function reconnect(){
-      window.setTimeout(function(){
+      console.log('reconnect');
+      if (!socket.connected) {
+        socket.connect();
         socket.emit('registerServer', function(serverId){
           ID = serverId;
-      })}, 1000);
+        });
+      }
     }
 
     // Helper functions end
@@ -1311,7 +1333,6 @@
       // Remove comment to delete players:
       delete players[playerID];
     })
-    socket.on('disconnect', reconnect);
 
     Promise.all(assetLoads).then(function () {
         console.log("Assets loaded.");
