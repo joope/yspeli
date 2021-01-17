@@ -55,6 +55,7 @@
       body {
         margin: 0;
         padding: 0;
+        overflow: hidden;
       }
       canvas {
         /*box-sizing: border-box;
@@ -702,7 +703,7 @@
             var closeness = (2 - (distance / threshold)); //1 if ball on top of player, 0 if on the edge
             ball.vel.x = (Math.sin(direction) * closeness);
             ball.vel.y = (Math.cos(direction) * closeness);
-            ball.vz = -ball.vz * closeness;
+            ball.vz = -ball.vz;
           } else {
             ball.vel.x = (Math.sin(direction) + slowdown * player.vel.x);
             ball.vel.y = (Math.cos(direction) + slowdown * player.vel.y);
@@ -716,7 +717,7 @@
         }
       })
       ball.vel = Vec2.multiply(ball.vel, rules.ballFriction);
-      ball.vz = Math.max(ball.vz - 0.03, -5);
+      ball.vz = Math.max(ball.vz - 0.01, -5);
       ball.pos = Vec2.add(ball.pos, ball.vel);
       ball.z = Math.max(ball.z + dt * ball.vz, 0);
       ball.angle = 0.5*(ball.angle - ball.vel.x) % (2.0*Math.PI);
