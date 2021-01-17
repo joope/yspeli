@@ -173,7 +173,7 @@
       ohh: {
         lastPlayed: performance.now(),
         repeatLimit: 500
-      } 
+      }
     }
 
     // Game settings -->
@@ -236,7 +236,6 @@
         vz: 0.0,
         az: 0.0,
         angle: 0.0,
-        color: '#c2c2c2',
         lastTouchedId: ''
       }
       arena = {
@@ -699,18 +698,25 @@
         if ((distance <= threshold) && ball.z < 2) {
           var direction = Math.atan2(delta.x, delta.y);
           var slowdown = 0.7;
-          ball.vel.x = (Math.sin(direction) + slowdown * player.vel.x);
-          ball.vel.y = (Math.cos(direction) + slowdown * player.vel.y);
-          ball.vz = ball.vz + 0.1*Math.min(player.vel.magnitude(), 2) + 0.5;
-          player.pos.subtract(normal);
-          player.bump = player.vel.magnitude()/30.0;
+          if (distance <= threshold * 0.90) {
+            var closeness = (2 - (distance / threshold)); //1 if ball on top of player, 0 if on the edge
+            ball.vel.x = (Math.sin(direction) * closeness);
+            ball.vel.y = (Math.cos(direction) * closeness);
+            ball.vz = -ball.vz * closeness;
+          } else {
+            ball.vel.x = (Math.sin(direction) + slowdown * player.vel.x);
+            ball.vel.y = (Math.cos(direction) + slowdown * player.vel.y);
+            ball.vz = ball.vz + 0.1*Math.min(player.vel.magnitude(), 2);
+            player.pos.subtract(normal);
+            player.bump = player.vel.magnitude()/30.0;
+          }
           player.vel.multiply(rules.playerPushBack);
           playSoundEffect('kick', Math.min(player.vel.magnitude() / 4, 0.7), playerID);
           ball.lastTouchedId = playerID;
         }
       })
       ball.vel = Vec2.multiply(ball.vel, rules.ballFriction);
-      ball.vz = Math.max(ball.vz - 0.05, -5);
+      ball.vz = Math.max(ball.vz - 0.03, -5);
       ball.pos = Vec2.add(ball.pos, ball.vel);
       ball.z = Math.max(ball.z + dt * ball.vz, 0);
       ball.angle = 0.5*(ball.angle - ball.vel.x) % (2.0*Math.PI);
@@ -793,7 +799,7 @@
         }
       }
 
-     
+
        // Bounce from goal top
       if (ball.pos.y < goals[0].topCorner.y + rules.ballSize && (ball.pos.x < goals[0].topCorner.x || ball.pos.x > goals[1].topCorner.x)) {
         ball.vel.y = -ball.vel.y;
@@ -1016,9 +1022,7 @@
       ctx.save();
       ctx.beginPath();
       ctx.strokeStyle = 'black';
-      ctx.arc(pos.x, pos.y, size, 0, 2 * Math.PI);
-      ctx.fillStyle = ball.color;
-      ctx.fill();
+      ctx.arc(pos.x, pos.y, size, 0, 2 * Math.PI)
       ctx.stroke();
       ctx.closePath();
       ctx.restore();
@@ -1033,7 +1037,11 @@
 
       ctx.rotate(ball.angle);
       size += 4;
+      if (ball.z > 4) {
+        ctx.globalAlpha = Math.max(1 - ball.z / 20, 0.5);
+      }
       ctx.drawImage(sprites["ball"], -size, -size, size*2, size*2);
+      ctx.globalAlpha = 1.0;
       ctx.restore();
     }
 
@@ -1099,7 +1107,7 @@
     // Helper functions -->
     function getRandomCoordinates(){
       return new Vec2(
-        Math.floor(Math.random() * Math.floor(arena.width)), 
+        Math.floor(Math.random() * Math.floor(arena.width)),
         Math.floor(Math.random() * Math.floor(arena.height))
       );
     };
@@ -1167,7 +1175,7 @@
 
       forEachPlayer(function(player, i){
         var y = arena.center.y - 50*(i - player.team) + (Object.keys(players).length / 2) * 50 - 50;
-        player.pos = player.team === 0 
+        player.pos = player.team === 0
           ? new Vec2(arena.center.x * 0.3, y)
           : new Vec2(arena.center.x * 1.7, y)
         player.v = 0;
